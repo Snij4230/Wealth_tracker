@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mortgage & Investment Tracker (30 Years)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: auto; }
+    h2 { margin-top: 30px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 200px; padding: 5px; }
+    button { margin-top: 20px; padding: 10px 20px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: right; }
+    th { background: #f4f4f4; }
+  </style>
+</head>
+
+<body>
+
+<h1>Mortgage & Investment Tracker (30 Years)</h1>
+
+<h2>Mortgage Inputs</h2>
+<label>Mortgage Amount ($): <input id="mortgageAmount" type="number" value="500000"></label>
+<label>Mortgage Interest Rate (%): <input id="mortgageRate" type="number" value="5"></label>
+<label>Monthly Lump Sum ($): <input id="monthlyLump" type="number" value="0"></label>
+<label>Yearly Lump Sum ($): <input id="yearlyLump" type="number" value="0"></label>
+
+<h2>Investment / TFSA Inputs</h2>
+<label>Monthly Investment ($): <input id="investmentMonthly" type="number" value="1000"></label>
+<label>Investment Return Rate (%): <input id="investmentRate" type="number" value="6"></label>
+
+<button onclick="calculate()">Calculate 30‑Year Projection</button>
+
+<div id="output"></div>
+
+<script>
+function calculate() {
+
+  const mortgage = parseFloat(document.getElementById("mortgageAmount").value);
+  const mortgageRate = parseFloat(document.getElementById("mortgageRate").value) / 100 / 12;
+  const monthlyLump = parseFloat(document.getElementById("monthlyLump").value);
+  const yearlyLump = parseFloat(document.getElementById("yearlyLump").value);
+
+  const investMonthly = parseFloat(document.getElementById("investmentMonthly").value);
+  const investRate = parseFloat(document.getElementById("investmentRate").value) / 100 / 12;
+
+  let mortgageBalance = mortgage;
+  let investmentBalance = 0;
+  let totalInterest = 0;
+
+  const months = 30 * 12;
+  const payment = mortgage * mortgageRate / (1 - Math.pow(1 + mortgageRate, -months));
+
+  let html = `
+    <table>
+      <tr>
+        <th>Month</th>
+        <th>Mortgage Balance ($)</th>
+        <th>Investment Balance ($)</th>
+      </tr>`;
+
+  for (let m = 1; m <= months; m++) {
+
+    // Mortgage
+    let interest = mortgageBalance * mortgageRate;
+    totalInterest += interest;
+    let principal = payment - interest;
+    mortgageBalance -= principal;
+    mortgageBalance -= monthlyLump;
+
+    if (m % 12 === 0) {
+      mortgageBalance -= yearlyLump;
+    }
+
+    mortgageBalance = Math.max(0, mortgageBalance);
+
+    // Investment
+    investmentBalance = investmentBalance * (1 + investRate) + investMonthly;
+
+    html += `
+      <tr>
+        <td>${m}</td>
+        <td>${mortgageBalance.toFixed(2)}</td>
+        <td>${investmentBalance.toFixed(2)}</td>
+      </tr>`;
+
+    if (mortgageBalance <= 0) break;
+  }
+
+  html += `</table>
+    <p><strong>Total Mortgage Interest Paid:</strong> $${totalInterest.toFixed(2)}</p>`;
+
+  document.getElementById("output").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
