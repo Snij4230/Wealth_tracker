@@ -47,3 +47,388 @@
     @media (max-width: 900px){ .summary{ grid-template-columns:1fr 1fr; } }
     @media (max-width: 520px){ .summary{ grid-template-columns:1fr; } }
     .stat{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px; }
+    .stat .label{ color:var(--muted); font-size:12px; }
+    .stat .value{ font-size:18px; font-weight:700; margin-top:6px; }
+
+    .toggles{ display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:14px; }
+    .toggles label{ display:flex; gap:8px; align-items:center; }
+
+    .chartWrap{ margin-top:16px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px; }
+
+    details{ margin-top:16px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px; }
+    details summary{ cursor:pointer; font-weight:700; }
+
+    table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+    th,td{ border:1px solid var(--border); padding:6px; text-align:right; }
+    th{ background:#f2f2f2; }
+    td:first-child,th:first-child{ text-align:left; }
+
+    .note{ font-size:12px; color:var(--muted); margin-top:8px; line-height:1.35; }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Wealth Tracker (30 Years)</h1>
+  <p>Mortgage + TFSA + RRSP + Net Worth (monthly timeline)</p>
+</header>
+
+<div class="container">
+
+  <div class="grid">
+    <div class="card">
+      <h2>Mortgage</h2>
+
+      <div class="row"><label>Mortgage Amount ($)</label>
+        <input id="mortgageAmount" type="number" value="416000" min="0"/></div>
+
+      <div class="row"><label>Mortgage Interest Rate (% annual)</label>
+        <input id="mortgageRate" type="number" value="3.65" min="0" step="0.01"/></div>
+
+      <div class="row"><label>Amortization (years)</label>
+        <input id="amortYears" type="number" value="30" min="1" max="40"/></div>
+
+      <div class="row"><label>Payment Mode</label>
+        <select id="paymentMode">
+          <option value="monthly" selected>Monthly</option>
+          <option value="accel_biweekly">Accelerated Bi‑weekly (approx.)</option>
+        </select>
+      </div>
+
+      <div class="row"><label>Monthly Lump Sum ($)</label>
+        <input id="monthlyLump" type="number" value="0" min="0"/></div>
+
+      <div class="row"><label>Yearly Lump Sum ($) (applied every 12 months)</label>
+        <input id="yearlyLump" type="number" value="0" min="0"/></div>
+
+      <div class="note">
+        Accelerated bi‑weekly is modeled as an increased effective monthly payment (26 payments/year).
+        Good planning estimate. We can refine to bank-exact compounding later.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Investments</h2>
+
+      <div class="row"><label>TFSA Monthly Contribution ($)</label>
+        <input id="tfsaMonthly" type="number" value="700" min="0"/></div>
+
+      <div class="row"><label>TFSA Return Rate (% annual)</label>
+        <input id="tfsaRate" type="number" value="11" min="0" step="0.01"/></div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+
+      <div class="row"><label>RRSP Monthly Contribution ($)</label>
+        <input id="rrspMonthly" type="number" value="300" min="0"/></div>
+
+      <div class="row"><label>RRSP Return Rate (% annual)</label>
+        <input id="rrspRate" type="number" value="8" min="0" step="0.01"/></div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+
+      <h2 style="margin-top:0;">Home Value (for Net Worth)</h2>
+
+      <div class="row"><label>Home Value Today ($)</label>
+        <input id="homeValue" type="number" value="554990" min="0"/></div>
+
+      <div class="row"><label>Home Appreciation (% annual)</label>
+        <input id="homeAppRate" type="number" value="3" min="0" step="0.01"/></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="calcBtn" class="primary" type="button">Calculate 30‑Year Projection</button>
+    <button id="saveBtn" type="button">Save Scenario</button>
+    <button id="loadBtn" type="button">Load Scenario</button>
+    <button id="clearBtn" type="button">Clear Saved</button>
+    <button id="csvBtn" type="button">Export CSV</button>
+  </div>
+
+  <div class="toggles">
+    <label><input type="checkbox" id="showMortgage" checked> Mortgage Balance</label>
+    <label><input type="checkbox" id="showTFSA" checked> TFSA</label>
+    <label><input type="checkbox" id="showRRSP" checked> RRSP</label>
+    <label><input type="checkbox" id="showNetWorth" checked> Net Worth</label>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="chartWrap">
+    <canvas id="wealthChart" height="110"></canvas>
+  </div>
+
+  <details>
+    <summary>Show month‑by‑month table (first 360 rows max)</summary>
+    <div id="tableWrap"></div>
+  </details>
+
+</div>
+
+<script>
+let chart = null;
+let lastResult = null;
+
+function fmtMoney(x){
+  if (!isFinite(x)) return "—";
+  return x.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+function fmtMoney2(x){
+  if (!isFinite(x)) return "—";
+  return x.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function getInputs(){
+  return {
+    mortgageAmount: +document.getElementById("mortgageAmount").value || 0,
+    mortgageRate: (+document.getElementById("mortgageRate").value || 0)/100,
+    amortYears: +document.getElementById("amortYears").value || 30,
+    paymentMode: document.getElementById("paymentMode").value,
+    monthlyLump: +document.getElementById("monthlyLump").value || 0,
+    yearlyLump: +document.getElementById("yearlyLump").value || 0,
+
+    tfsaMonthly: +document.getElementById("tfsaMonthly").value || 0,
+    tfsaRate: (+document.getElementById("tfsaRate").value || 0)/100,
+
+    rrspMonthly: +document.getElementById("rrspMonthly").value || 0,
+    rrspRate: (+document.getElementById("rrspRate").value || 0)/100,
+
+    homeValue: +document.getElementById("homeValue").value || 0,
+    homeAppRate: (+document.getElementById("homeAppRate").value || 0)/100,
+  };
+}
+
+function standardMonthlyPayment(P, annualRate, years){
+  const n = years*12;
+  const i = annualRate/12;
+  if (i === 0) return P/n;
+  return P * i / (1 - Math.pow(1 + i, -n));
+}
+
+function runProjection(){
+  const p = getInputs();
+  const monthsMax = p.amortYears * 12;
+
+  let mortgageBal = p.mortgageAmount;
+  let tfsaBal = 0;
+  let rrspBal = 0;
+  let homeVal = p.homeValue;
+
+  const mortMonthlyRate = p.mortgageRate / 12;
+  const tfsaMonthlyRate = p.tfsaRate / 12;
+  const rrspMonthlyRate = p.rrspRate / 12;
+  const homeMonthlyRate = p.homeAppRate / 12;
+
+  const baseMonthly = standardMonthlyPayment(p.mortgageAmount, p.mortgageRate, p.amortYears);
+  let monthlyPay = baseMonthly;
+
+  if (p.paymentMode === "accel_biweekly"){
+    monthlyPay = baseMonthly * (13/12); // approx accelerated bi-weekly
+  }
+
+  const labels = [];
+  const mortSeries = [];
+  const tfsaSeries = [];
+  const rrspSeries = [];
+  const netWorthSeries = [];
+  const equitySeries = [];
+  const homeSeries = [];
+  const interestSeries = [];
+
+  let totalInterest = 0;
+  let payoffMonth = null;
+
+  for (let m=1; m<=monthsMax; m++){
+    if (mortgageBal > 0){
+      const interest = mortgageBal * mortMonthlyRate;
+      totalInterest += interest;
+
+      let principal = monthlyPay - interest;
+      if (principal < 0) principal = 0;
+
+      mortgageBal -= principal;
+      mortgageBal -= p.monthlyLump;
+
+      if (m % 12 === 0) mortgageBal -= p.yearlyLump;
+
+      if (mortgageBal <= 0){
+        mortgageBal = 0;
+        if (!payoffMonth) payoffMonth = m;
+      }
+    }
+
+    tfsaBal = tfsaBal * (1 + tfsaMonthlyRate) + p.tfsaMonthly;
+    rrspBal = rrspBal * (1 + rrspMonthlyRate) + p.rrspMonthly;
+    homeVal = homeVal * (1 + homeMonthlyRate);
+
+    const equity = Math.max(0, homeVal - mortgageBal);
+    const netWorth = equity + tfsaBal + rrspBal;
+
+    labels.push(`M${m}`);
+    mortSeries.push(mortgageBal);
+    tfsaSeries.push(tfsaBal);
+    rrspSeries.push(rrspBal);
+    homeSeries.push(homeVal);
+    equitySeries.push(equity);
+    netWorthSeries.push(netWorth);
+    interestSeries.push(totalInterest);
+  }
+
+  lastResult = { labels, mortSeries, tfsaSeries, rrspSeries, netWorthSeries, equitySeries, homeSeries, interestSeries, totalInterest, payoffMonth, baseMonthly, monthlyPay, inputs: p };
+  renderSummary(lastResult);
+  renderChart(lastResult);
+  renderTable(lastResult);
+  updateChartVisibility();
+}
+
+function renderSummary(r){
+  const payoffText = r.payoffMonth ? `Month ${r.payoffMonth} (~Year ${(r.payoffMonth/12).toFixed(1)})` : `Not paid off within ${r.inputs.amortYears} years`;
+  const finalTFSA = r.tfsaSeries[r.tfsaSeries.length-1];
+  const finalRRSP = r.rrspSeries[r.rrspSeries.length-1];
+  const finalNW = r.netWorthSeries[r.netWorthSeries.length-1];
+  const finalEquity = r.equitySeries[r.equitySeries.length-1];
+
+  document.getElementById("summary").innerHTML = `
+    <div class="stat"><div class="label">Payment (monthly equivalent)</div><div class="value">$${fmtMoney2(r.monthlyPay)}</div></div>
+    <div class="stat"><div class="label">Mortgage payoff</div><div class="value">${payoffText}</div></div>
+    <div class="stat"><div class="label">Total interest paid</div><div class="value">$${fmtMoney(r.totalInterest)}</div></div>
+    <div class="stat"><div class="label">Final net worth</div><div class="value">$${fmtMoney(finalNW)}</div></div>
+    <div class="stat"><div class="label">Final home equity</div><div class="value">$${fmtMoney(finalEquity)}</div></div>
+    <div class="stat"><div class="label">Final TFSA</div><div class="value">$${fmtMoney(finalTFSA)}</div></div>
+    <div class="stat"><div class="label">Final RRSP</div><div class="value">$${fmtMoney(finalRRSP)}</div></div>
+    <div class="stat"><div class="label">Final home value</div><div class="value">$${fmtMoney(r.homeSeries[r.homeSeries.length-1])}</div></div>
+  `;
+}
+
+function renderChart(r){
+  const ctx = document.getElementById("wealthChart").getContext("2d");
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: r.labels,
+      datasets: [
+        { label:"Mortgage Balance", data:r.mortSeries, borderColor:"#e11d48", tension:0.2, borderWidth:2 },
+        { label:"TFSA", data:r.tfsaSeries, borderColor:"#16a34a", tension:0.2, borderWidth:2 },
+        { label:"RRSP", data:r.rrspSeries, borderColor:"#0ea5e9", tension:0.2, borderWidth:2 },
+        { label:"Net Worth", data:r.netWorthSeries, borderColor:"#111827", tension:0.2, borderWidth:2 }
+      ]
+    },
+    options: {
+      responsive:true,
+      interaction:{ mode:"index", intersect:false },
+      plugins:{
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: $${fmtMoney(c.parsed.y)}` } }
+      },
+      scales:{
+        y:{ ticks:{ callback:(v)=> "$"+Number(v).toLocaleString() } }
+      }
+    }
+  });
+}
+
+function updateChartVisibility(){
+  if (!chart) return;
+  chart.data.datasets[0].hidden = !document.getElementById("showMortgage").checked;
+  chart.data.datasets[1].hidden = !document.getElementById("showTFSA").checked;
+  chart.data.datasets[2].hidden = !document.getElementById("showRRSP").checked;
+  chart.data.datasets[3].hidden = !document.getElementById("showNetWorth").checked;
+  chart.update();
+}
+
+function renderTable(r){
+  let html = `<table>
+    <tr>
+      <th>Month</th><th>Mortgage</th><th>TFSA</th><th>RRSP</th><th>Home Value</th><th>Equity</th><th>Net Worth</th><th>Total Interest</th>
+    </tr>`;
+  for (let i=0;i<r.labels.length && i<360;i++){
+    html += `<tr>
+      <td>${r.labels[i]}</td>
+      <td>${fmtMoney2(r.mortSeries[i])}</td>
+      <td>${fmtMoney2(r.tfsaSeries[i])}</td>
+      <td>${fmtMoney2(r.rrspSeries[i])}</td>
+      <td>${fmtMoney2(r.homeSeries[i])}</td>
+      <td>${fmtMoney2(r.equitySeries[i])}</td>
+      <td>${fmtMoney2(r.netWorthSeries[i])}</td>
+      <td>${fmtMoney2(r.interestSeries[i])}</td>
+    </tr>`;
+  }
+  html += `</table>`;
+  document.getElementById("tableWrap").innerHTML = html;
+}
+
+function saveScenario(){
+  localStorage.setItem("wealth_tracker_scenario", JSON.stringify(getInputs()));
+  alert("Scenario saved in this browser.");
+}
+function loadScenario(){
+  const raw = localStorage.getItem("wealth_tracker_scenario");
+  if (!raw) return alert("No saved scenario found.");
+  const d = JSON.parse(raw);
+
+  document.getElementById("mortgageAmount").value = d.mortgageAmount ?? 0;
+  document.getElementById("mortgageRate").value = (d.mortgageRate ?? 0) * 100;
+  document.getElementById("amortYears").value = d.amortYears ?? 30;
+  document.getElementById("paymentMode").value = d.paymentMode ?? "monthly";
+  document.getElementById("monthlyLump").value = d.monthlyLump ?? 0;
+  document.getElementById("yearlyLump").value = d.yearlyLump ?? 0;
+
+  document.getElementById("tfsaMonthly").value = d.tfsaMonthly ?? 0;
+  document.getElementById("tfsaRate").value = (d.tfsaRate ?? 0) * 100;
+
+  document.getElementById("rrspMonthly").value = d.rrspMonthly ?? 0;
+  document.getElementById("rrspRate").value = (d.rrspRate ?? 0) * 100;
+
+  document.getElementById("homeValue").value = d.homeValue ?? 0;
+  document.getElementById("homeAppRate").value = (d.homeAppRate ?? 0) * 100;
+
+  alert("Scenario loaded. Click Calculate.");
+}
+function clearScenario(){
+  localStorage.removeItem("wealth_tracker_scenario");
+  alert("Saved scenario cleared.");
+}
+
+function exportCSV(){
+  if (!lastResult) return alert("Run Calculate first.");
+  const r = lastResult;
+  const header = ["Month","Mortgage","TFSA","RRSP","HomeValue","Equity","NetWorth","TotalInterest"];
+  const lines = [header.join(",")];
+  for (let i=0;i<r.labels.length;i++){
+    lines.push([
+      r.labels[i],
+      r.mortSeries[i].toFixed(2),
+      r.tfsaSeries[i].toFixed(2),
+      r.rrspSeries[i].toFixed(2),
+      r.homeSeries[i].toFixed(2),
+      r.equitySeries[i].toFixed(2),
+      r.netWorthSeries[i].toFixed(2),
+      r.interestSeries[i].toFixed(2)
+    ].join(","));
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "wealth_tracker.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ✅ attach events after DOM loads */
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("calcBtn").addEventListener("click", runProjection);
+  document.getElementById("saveBtn").addEventListener("click", saveScenario);
+  document.getElementById("loadBtn").addEventListener("click", loadScenario);
+  document.getElementById("clearBtn").addEventListener("click", clearScenario);
+  document.getElementById("csvBtn").addEventListener("click", exportCSV);
+
+  document.getElementById("showMortgage").addEventListener("change", updateChartVisibility);
+  document.getElementById("showTFSA").addEventListener("change", updateChartVisibility);
+  document.getElementById("showRRSP").addEventListener("change", updateChartVisibility);
+  document.getElementById("showNetWorth").addEventListener("change", updateChartVisibility);
+});
+</script>
+</body>
+</html>
