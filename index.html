@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Wealth Tracker — Mortgage + TFSA + RRSP</title>
 
-  <!-- Chart.js (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  <style>
+  <!-- ✅ Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js<style>
     :root{
       --text:#0f172a;
       --muted:#64748b;
@@ -162,7 +160,7 @@
       background:#fff;
       border:1px solid var(--border);
       border-radius:16px;
-      padding:10px; /* smaller padding */
+      padding:10px;
       box-shadow: var(--shadow);
     }
     .chartTitle{
@@ -282,7 +280,6 @@
       <div class="row"><label>Current Savings (Cash) — Starting ($)</label>
         <input id="cashStart" type="number" value="0" min="0"/></div>
 
-      <!-- ✅ NEW: monthly savings contribution -->
       <div class="row"><label>Monthly Savings Contribution ($)</label>
         <input id="cashMonthly" type="number" value="0" min="0"/></div>
 
@@ -408,7 +405,7 @@
       yearlyLump: +document.getElementById("yearlyLump").value || 0,
 
       cashStart: +document.getElementById("cashStart").value || 0,
-      cashMonthly: +document.getElementById("cashMonthly").value || 0, // ✅ NEW
+      cashMonthly: +document.getElementById("cashMonthly").value || 0,
 
       tfsaStart: +document.getElementById("tfsaStart").value || 0,
       tfsaMonthly: +document.getElementById("tfsaMonthly").value || 0,
@@ -453,12 +450,13 @@
     let tfsaBal = p.tfsaStart;
     let rrspBal = p.rrspStart;
     let cashBal = p.cashStart;
-    const homeVal = p.homeValue; // constant
+
+    const homeValConst = p.homeValue; // constant
+    const cashMonthlyRate = 0; // 0% return for cash
 
     const mortMonthlyRate = p.mortgageRate / 12;
     const tfsaMonthlyRate = p.tfsaRate / 12;
     const rrspMonthlyRate = p.rrspRate / 12;
-    const cashMonthlyRate = 0; // assumed 0% return for cash
 
     const baseMonthly = standardMonthlyPayment(p.mortgageAmount, p.mortgageRate, p.amortYears);
     let monthlyPay = baseMonthly;
@@ -471,8 +469,9 @@
     const tfsaSeries = [];
     const rrspSeries = [];
     const cashSeries = [];
-    const netWorthSeries = [];
+    const homeSeries = [];     // ✅ NEW
     const equitySeries = [];
+    const netWorthSeries = [];
     const interestSeries = [];
     const principalPaidSeries = [];
 
@@ -508,9 +507,10 @@
       rrspBal = rrspBal * (1 + rrspMonthlyRate) + p.rrspMonthly;
       if (p.rrspLumpAmount > 0 && isDue(p.rrspLumpFreq, m)) rrspBal += p.rrspLumpAmount;
 
-      // ✅ NEW: Cash savings grows monthly
+      // Cash
       cashBal = cashBal * (1 + cashMonthlyRate) + p.cashMonthly;
 
+      const homeVal = homeValConst; // constant
       const equity = Math.max(0, homeVal - mortgageBal);
       const netWorth = equity + tfsaBal + rrspBal + cashBal;
 
@@ -519,6 +519,7 @@
       tfsaSeries.push(tfsaBal);
       rrspSeries.push(rrspBal);
       cashSeries.push(cashBal);
+      homeSeries.push(homeVal);          // ✅ NEW
       equitySeries.push(equity);
       netWorthSeries.push(netWorth);
       interestSeries.push(totalInterest);
@@ -526,7 +527,7 @@
     }
 
     lastResult = {
-      labels, mortSeries, tfsaSeries, rrspSeries, cashSeries,
+      labels, mortSeries, tfsaSeries, rrspSeries, cashSeries, homeSeries, // ✅ NEW
       netWorthSeries, equitySeries, interestSeries, principalPaidSeries,
       totalInterest, payoffMonth, baseMonthly, monthlyPay, inputs: p
     };
@@ -554,6 +555,7 @@
     const finalNW   = r.netWorthSeries[idx];
     const finalEquity = r.equitySeries[idx];
     const totalInterestToDate = r.interestSeries[idx];
+    const homeVal = r.homeSeries[idx]; // ✅ NEW
 
     const payoffText = (r.payoffMonth && r.payoffMonth <= months)
       ? `Month ${r.payoffMonth} (~Year ${(r.payoffMonth/12).toFixed(1)})`
@@ -565,10 +567,10 @@
       <div class="stat"><div class="label">Total interest (to selected year)</div><div class="value">$${fmtMoney(totalInterestToDate)}</div></div>
       <div class="stat"><div class="label">Net worth (selected year)</div><div class="value">$${fmtMoney(finalNW)}</div></div>
 
+      <div class="stat"><div class="label">Home value (selected year)</div><div class="value">$${fmtMoney(homeVal)}</div></div>
       <div class="stat"><div class="label">Home equity (selected year)</div><div class="value">$${fmtMoney(finalEquity)}</div></div>
       <div class="stat"><div class="label">TFSA (selected year)</div><div class="value">$${fmtMoney(finalTFSA)}</div></div>
       <div class="stat"><div class="label">RRSP (selected year)</div><div class="value">$${fmtMoney(finalRRSP)}</div></div>
-      <div class="stat"><div class="label">Savings (cash) (selected year)</div><div class="value">$${fmtMoney(finalCash)}</div></div>
     `;
   }
 
@@ -705,6 +707,7 @@
         <th>TFSA</th>
         <th>RRSP</th>
         <th>Savings</th>
+        <th>Home Value</th>
         <th>Equity</th>
         <th>Net Worth</th>
         <th>Total Interest</th>
@@ -718,6 +721,7 @@
         <td>${fmtMoney2(r.tfsaSeries[i])}</td>
         <td>${fmtMoney2(r.rrspSeries[i])}</td>
         <td>${fmtMoney2(r.cashSeries[i])}</td>
+        <td>${fmtMoney2(r.homeSeries[i])}</td>
         <td>${fmtMoney2(r.equitySeries[i])}</td>
         <td>${fmtMoney2(r.netWorthSeries[i])}</td>
         <td>${fmtMoney2(r.interestSeries[i])}</td>
@@ -776,7 +780,7 @@
     const r = lastResult;
     const months = Math.min(viewMonths || r.labels.length, r.labels.length);
 
-    const header = ["Month","Mortgage","TFSA","RRSP","Savings","Equity","NetWorth","TotalInterest"];
+    const header = ["Month","Mortgage","TFSA","RRSP","Savings","HomeValue","Equity","NetWorth","TotalInterest"];
     const lines = [header.join(",")];
 
     for (let i=0; i<months; i++){
@@ -786,6 +790,7 @@
         r.tfsaSeries[i].toFixed(2),
         r.rrspSeries[i].toFixed(2),
         r.cashSeries[i].toFixed(2),
+        r.homeSeries[i].toFixed(2),
         r.equitySeries[i].toFixed(2),
         r.netWorthSeries[i].toFixed(2),
         r.interestSeries[i].toFixed(2)
