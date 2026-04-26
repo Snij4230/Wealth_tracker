@@ -14,12 +14,12 @@
       --muted:#64748b;
       --border:rgba(15,23,42,.10);
       --shadow:0 10px 26px rgba(2,6,23,.08);
-      --accent:#0b5fff;
+      --accent:#0ea5e9;   /* teal-ish */
+      --accent2:#4f46e5;  /* indigo */
       --danger:#e11d48;
       --good:#16a34a;
       --info:#0ea5e9;
       --warn:#f59e0b;
-      --indigo:#6366f1;
     }
 
     body{
@@ -27,16 +27,17 @@
       font-family: Arial, sans-serif;
       color:var(--text);
       background:
-        radial-gradient(1200px 600px at 20% 0%, rgba(11,95,255,.06), transparent 55%),
-        radial-gradient(1000px 600px at 80% 10%, rgba(109,40,217,.05), transparent 55%),
+        radial-gradient(1200px 600px at 20% 0%, rgba(14,165,233,.06), transparent 55%),
+        radial-gradient(1000px 600px at 80% 10%, rgba(79,70,229,.05), transparent 55%),
         #ffffff;
       min-height: 100vh;
     }
 
+    /* ✅ header color changed */
     header{
       padding:22px 16px;
       text-align:center;
-      background: #0b5fff;
+      background: linear-gradient(135deg, rgba(14,165,233,.95), rgba(79,70,229,.92));
       color:#fff;
       border-bottom: 1px solid rgba(255,255,255,.20);
     }
@@ -78,8 +79,8 @@
       outline:none;
     }
     .row input:focus, .row select:focus{
-      border-color: rgba(11,95,255,.5);
-      box-shadow: 0 0 0 4px rgba(11,95,255,.10);
+      border-color: rgba(14,165,233,.55);
+      box-shadow: 0 0 0 4px rgba(14,165,233,.10);
     }
 
     .sectionTitle{
@@ -115,9 +116,9 @@
       box-shadow: 0 6px 16px rgba(2,6,23,.06);
     }
     button.primary{
-      background:var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       color:#fff;
-      border-color:var(--accent);
+      border-color: rgba(255,255,255,.0);
     }
 
     .toggles{
@@ -148,11 +149,12 @@
     .stat .label{ color:var(--muted); font-size:12px; }
     .stat .value{ font-size:18px; font-weight:900; margin-top:6px; }
 
+    /* ✅ pie charts smaller */
     .chartGrid{
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:16px;
-      margin:16px 0 0;
+      gap:14px;
+      margin:14px 0 0;
     }
     @media (max-width: 900px){ .chartGrid{ grid-template-columns:1fr; } }
 
@@ -160,12 +162,12 @@
       background:#fff;
       border:1px solid var(--border);
       border-radius:16px;
-      padding:12px;
+      padding:10px; /* smaller padding */
       box-shadow: var(--shadow);
     }
     .chartTitle{
       font-weight:900;
-      margin:2px 0 10px;
+      margin:2px 0 8px;
       color:#0f172a;
     }
 
@@ -192,7 +194,7 @@
     th{ background:#f8fafc; }
     td:first-child,th:first-child{ text-align:left; }
 
-    .spacer{ height:12px; }
+    .spacer{ height:10px; }
   </style>
 </head>
 
@@ -205,7 +207,7 @@
 <div class="container">
 
   <!-- FILTER CARD -->
-  <div class="card" style="margin-bottom:16px;">
+  <div class="card" style="margin-bottom:14px;">
     <div class="sectionTitle">View Filter</div>
     <div class="row">
       <label>Show Results For (endpoint)</label>
@@ -229,11 +231,11 @@
   <div class="chartGrid" style="margin-top:0;">
     <div class="chartWrap">
       <div class="chartTitle">Debt (Mortgage Snapshot)</div>
-      <canvas id="debtPie" height="160"></canvas>
+      <canvas id="debtPie" height="130"></canvas>
     </div>
     <div class="chartWrap">
       <div class="chartTitle">My Money (TFSA + RRSP + Cash)</div>
-      <canvas id="moneyPie" height="160"></canvas>
+      <canvas id="moneyPie" height="130"></canvas>
     </div>
   </div>
 
@@ -275,8 +277,18 @@
     <div class="card">
       <div class="sectionTitle">Investments + Savings</div>
 
+      <div class="subhead" style="margin-top:0;">Savings (Cash)</div>
+
       <div class="row"><label>Current Savings (Cash) — Starting ($)</label>
         <input id="cashStart" type="number" value="0" min="0"/></div>
+
+      <!-- ✅ NEW: monthly savings contribution -->
+      <div class="row"><label>Monthly Savings Contribution ($)</label>
+        <input id="cashMonthly" type="number" value="0" min="0"/></div>
+
+      <div class="note">
+        Savings grows by monthly contribution. Return rate is assumed 0% (easy to add later).
+      </div>
 
       <hr class="divider"/>
 
@@ -396,6 +408,7 @@
       yearlyLump: +document.getElementById("yearlyLump").value || 0,
 
       cashStart: +document.getElementById("cashStart").value || 0,
+      cashMonthly: +document.getElementById("cashMonthly").value || 0, // ✅ NEW
 
       tfsaStart: +document.getElementById("tfsaStart").value || 0,
       tfsaMonthly: +document.getElementById("tfsaMonthly").value || 0,
@@ -440,16 +453,17 @@
     let tfsaBal = p.tfsaStart;
     let rrspBal = p.rrspStart;
     let cashBal = p.cashStart;
-    const homeVal = p.homeValue; // constant (no appreciation)
+    const homeVal = p.homeValue; // constant
 
     const mortMonthlyRate = p.mortgageRate / 12;
     const tfsaMonthlyRate = p.tfsaRate / 12;
     const rrspMonthlyRate = p.rrspRate / 12;
+    const cashMonthlyRate = 0; // assumed 0% return for cash
 
     const baseMonthly = standardMonthlyPayment(p.mortgageAmount, p.mortgageRate, p.amortYears);
     let monthlyPay = baseMonthly;
     if (p.paymentMode === "accel_biweekly"){
-      monthlyPay = baseMonthly * (13/12); // approx accelerated bi-weekly
+      monthlyPay = baseMonthly * (13/12);
     }
 
     const labels = [];
@@ -494,8 +508,8 @@
       rrspBal = rrspBal * (1 + rrspMonthlyRate) + p.rrspMonthly;
       if (p.rrspLumpAmount > 0 && isDue(p.rrspLumpFreq, m)) rrspBal += p.rrspLumpAmount;
 
-      // Cash: constant (easy to extend later)
-      cashBal = cashBal;
+      // ✅ NEW: Cash savings grows monthly
+      cashBal = cashBal * (1 + cashMonthlyRate) + p.cashMonthly;
 
       const equity = Math.max(0, homeVal - mortgageBal);
       const netWorth = equity + tfsaBal + rrspBal + cashBal;
@@ -620,6 +634,7 @@
         }]
       },
       options: {
+        cutout: "62%",
         plugins: {
           legend: { position: "bottom" },
           tooltip: {
@@ -655,6 +670,7 @@
         }]
       },
       options: {
+        cutout: "62%",
         plugins: {
           legend: { position: "bottom" },
           tooltip: {
@@ -730,6 +746,7 @@
     document.getElementById("yearlyLump").value = d.yearlyLump ?? 0;
 
     document.getElementById("cashStart").value = d.cashStart ?? 0;
+    document.getElementById("cashMonthly").value = d.cashMonthly ?? 0;
 
     document.getElementById("tfsaStart").value = d.tfsaStart ?? 0;
     document.getElementById("tfsaMonthly").value = d.tfsaMonthly ?? 0;
