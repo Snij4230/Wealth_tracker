@@ -5,429 +5,594 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Wealth Tracker — Mortgage + TFSA + RRSP</title>
 
-  <!-- ✅ Chart.js (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js<style>
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* -------------------------
+       Theme tokens
+    ------------------------- */
     :root{
+      --bg:#ffffff;
+      --bgSoft:#f7f8fb;
+      --card:#ffffff;
       --text:#0f172a;
       --muted:#64748b;
-      --border:rgba(15,23,42,.10);
+      --border:rgba(15,23,42,.12);
       --shadow:0 10px 26px rgba(2,6,23,.08);
-      --accent:#0ea5e9;   /* teal-ish */
+
+      --accent:#0ea5e9;   /* teal */
       --accent2:#4f46e5;  /* indigo */
       --danger:#e11d48;
       --good:#16a34a;
       --info:#0ea5e9;
       --warn:#f59e0b;
+      --neutral:#111827;
+
+      --radius:16px;
     }
 
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --bgSoft:#0f172a;
+      --card:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:rgba(255,255,255,.10);
+      --shadow:0 12px 32px rgba(0,0,0,.35);
+    }
+
+    /* -------------------------
+       Base
+    ------------------------- */
+    *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Arial, sans-serif;
       color:var(--text);
       background:
-        radial-gradient(1200px 600px at 20% 0%, rgba(14,165,233,.06), transparent 55%),
-        radial-gradient(1000px 600px at 80% 10%, rgba(79,70,229,.05), transparent 55%),
-        #ffffff;
+        radial-gradient(1200px 600px at 18% 0%, rgba(14,165,233,.08), transparent 55%),
+        radial-gradient(1000px 600px at 82% 10%, rgba(79,70,229,.07), transparent 55%),
+        var(--bg);
       min-height: 100vh;
     }
+    a{ color:inherit; }
 
-    /* ✅ header color changed */
+    /* -------------------------
+       Header
+    ------------------------- */
     header{
-      padding:22px 16px;
+      padding:18px 16px;
       text-align:center;
-      background: linear-gradient(135deg, rgba(14,165,233,.95), rgba(79,70,229,.92));
       color:#fff;
-      border-bottom: 1px solid rgba(255,255,255,.20);
+      background: linear-gradient(135deg, rgba(14,165,233,.95), rgba(79,70,229,.92));
+      border-bottom: 1px solid rgba(255,255,255,.18);
+      position: relative;
+      overflow:hidden;
     }
-    header h1{ margin:0; font-size:32px; letter-spacing:.2px; }
+    header:before{
+      content:"";
+      position:absolute;
+      inset:-60px;
+      background:
+        radial-gradient(900px 320px at 15% 40%, rgba(255,255,255,.22), transparent 60%),
+        radial-gradient(800px 280px at 85% 10%, rgba(255,255,255,.16), transparent 60%);
+      pointer-events:none;
+    }
+    header .inner{ position:relative; max-width:1150px; margin:0 auto; }
+    header h1{ margin:0; font-size:30px; letter-spacing:.2px; }
     header p{ margin:8px 0 0; opacity:.95; }
 
+    .topRight{
+      position:absolute;
+      top:14px;
+      right:14px;
+      display:flex;
+      gap:8px;
+      z-index:2;
+    }
+
+    /* -------------------------
+       Layout
+    ------------------------- */
     .container{ max-width:1150px; margin:0 auto; padding:16px; }
 
     .card{
-      background:#fff;
+      background:var(--card);
       border:1px solid var(--border);
-      border-radius:16px;
+      border-radius:var(--radius);
       padding:14px;
       box-shadow: var(--shadow);
     }
 
-    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
     @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
 
     .row{
       display:grid;
-      grid-template-columns:1fr 220px;
+      grid-template-columns:1fr 240px;
       gap:10px;
       align-items:center;
       margin:8px 0;
     }
-    @media (max-width: 520px){
-      .row{ grid-template-columns: 1fr; }
-    }
+    @media (max-width: 520px){ .row{ grid-template-columns:1fr; } }
 
-    .row label{ font-size:14px; color:#111827; }
-    .row input, .row select{
+    label{ font-size:14px; color:var(--text); }
+    .muted{ color:var(--muted); }
+
+    input, select{
       width:100%;
       padding:9px 10px;
       border:1px solid var(--border);
-      border-radius:10px;
+      border-radius:12px;
       font-size:14px;
-      background:#fff;
+      background: var(--bg);
+      color: var(--text);
       outline:none;
     }
-    .row input:focus, .row select:focus{
+    input:focus, select:focus{
       border-color: rgba(14,165,233,.55);
       box-shadow: 0 0 0 4px rgba(14,165,233,.10);
     }
 
-    .sectionTitle{
-      margin:0 0 10px;
-      font-size:18px;
-      font-weight:800;
-    }
-
-    .subhead{ margin-top:14px; font-weight:800; color:#0f172a; }
+    .sectionTitle{ margin:0 0 10px; font-size:18px; font-weight:800; }
+    .subhead{ margin-top:14px; font-weight:800; }
     .divider{ border:none; border-top:1px solid var(--border); margin:12px 0; }
 
-    .note{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:8px;
-      line-height:1.35;
-    }
+    .note{ font-size:12px; color:var(--muted); margin-top:8px; line-height:1.35; }
 
-    .actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    button{
-      padding:10px 14px;
+    /* -------------------------
+       Buttons
+    ------------------------- */
+    .btn{
+      padding:10px 12px;
       border-radius:12px;
       border:1px solid var(--border);
-      background:#fff;
+      background: var(--card);
+      color: var(--text);
       cursor:pointer;
       font-weight:800;
       box-shadow: 0 6px 16px rgba(2,6,23,.06);
+      transition: transform .06s ease;
     }
-    button.primary{
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: transparent;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       color:#fff;
-      border-color: rgba(255,255,255,.0);
+    }
+    .btn.ghost{
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      border-color: rgba(255,255,255,.20);
+      box-shadow:none;
+    }
+    [data-theme="dark"] .btn.ghost{
+      background: rgba(0,0,0,.16);
+      border-color: rgba(255,255,255,.14);
     }
 
-    .toggles{
+    .pillRow{ display:flex; flex-wrap:wrap; gap:8px; }
+    .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: var(--bgSoft);
+      cursor:pointer;
+      font-weight:700;
+      color: var(--text);
+    }
+
+    /* -------------------------
+       Sticky action bar
+    ------------------------- */
+    .actionBar{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 14px 0;
+      padding: 10px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.70);
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 24px rgba(2,6,23,.08);
+      backdrop-filter: blur(10px);
       display:flex;
       flex-wrap:wrap;
-      gap:14px;
-      margin-top:10px;
-      font-size:14px;
+      gap:8px;
+      align-items:center;
+      justify-content: space-between;
     }
-    .toggles label{ display:flex; gap:8px; align-items:center; }
-
-    .summary{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:12px;
-      margin-top:16px;
+    [data-theme="dark"] .actionBar{
+      background: rgba(15,23,42,.70);
     }
-    @media (max-width: 900px){ .summary{ grid-template-columns:1fr 1fr; } }
-    @media (max-width: 520px){ .summary{ grid-template-columns:1fr; } }
+    .actionLeft, .actionRight{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 
-    .stat{
-      background:#fff;
+    /* -------------------------
+       KPI cards
+    ------------------------- */
+    .kpis{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-top:14px; }
+    @media (max-width: 900px){ .kpis{ grid-template-columns:1fr 1fr; } }
+    @media (max-width: 520px){ .kpis{ grid-template-columns:1fr; } }
+
+    .kpi{
+      background: var(--card);
       border:1px solid var(--border);
-      border-radius:16px;
-      padding:12px;
+      border-radius: var(--radius);
+      padding: 12px;
       box-shadow: var(--shadow);
     }
-    .stat .label{ color:var(--muted); font-size:12px; }
-    .stat .value{ font-size:18px; font-weight:900; margin-top:6px; }
+    .kpi .label{ font-size:12px; color: var(--muted); }
+    .kpi .value{ font-size:20px; font-weight:900; margin-top:6px; }
+    .kpi .sub{ margin-top:6px; font-size:12px; color: var(--muted); }
 
-    /* ✅ pie charts smaller */
-    .chartGrid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:14px;
-      margin:14px 0 0;
-    }
+    /* -------------------------
+       Charts
+    ------------------------- */
+    .chartGrid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
     @media (max-width: 900px){ .chartGrid{ grid-template-columns:1fr; } }
 
     .chartWrap{
-      background:#fff;
+      background: var(--card);
       border:1px solid var(--border);
-      border-radius:16px;
+      border-radius: var(--radius);
       padding:10px;
       box-shadow: var(--shadow);
     }
-    .chartTitle{
-      font-weight:900;
-      margin:2px 0 8px;
-      color:#0f172a;
-    }
+    .chartTitle{ font-weight:900; margin:2px 0 8px; }
 
-    details{
-      margin-top:16px;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:12px;
-      box-shadow: var(--shadow);
-    }
-    details summary{ cursor:pointer; font-weight:900; }
+    /* -------------------------
+       Toggles
+    ------------------------- */
+    .toggles{ display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:14px; }
+    .toggles label{ display:flex; gap:8px; align-items:center; }
 
+    /* -------------------------
+       Table
+    ------------------------- */
+    details{ margin-top:16px; }
+    details > summary{ cursor:pointer; font-weight:900; }
+
+    .tableWrap{
+      margin-top:10px;
+      overflow:auto;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
     table{
       width:100%;
       border-collapse:collapse;
-      margin-top:10px;
       font-size:12px;
-      background:#fff;
-      border-radius:12px;
-      overflow:hidden;
+      background: var(--card);
     }
-    th,td{ border:1px solid var(--border); padding:6px; text-align:right; }
-    th{ background:#f8fafc; }
-    td:first-child,th:first-child{ text-align:left; }
+    th, td{ padding:8px; border-bottom: 1px solid var(--border); text-align:right; white-space:nowrap; }
+    th{ position: sticky; top: 0; background: var(--bgSoft); z-index: 1; }
+    td:first-child, th:first-child{ text-align:left; }
+    tbody tr:nth-child(odd){ background: rgba(2,6,23,.03); }
+    [data-theme="dark"] tbody tr:nth-child(odd){ background: rgba(255,255,255,.03); }
 
-    .spacer{ height:10px; }
+    /* -------------------------
+       Modal
+    ------------------------- */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index: 50;
+    }
+    .modal{
+      max-width: 640px;
+      width: 100%;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+      padding: 16px;
+    }
+    .modal h3{ margin:0 0 8px; }
+    .modal ul{ margin: 8px 0; padding-left: 18px; color: var(--muted); }
+    .modalFooter{ display:flex; justify-content:flex-end; gap:10px; margin-top: 10px; }
+
+    /* Small helper */
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: var(--bgSoft);
+      color: var(--text);
+    }
+
+    .twoCols{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    @media (max-width: 900px){ .twoCols{ grid-template-columns: 1fr; } }
+
+    .iconBtn{ display:flex; align-items:center; gap:8px; }
+
+    .footerNote{ margin-top: 14px; font-size: 12px; color: var(--muted); text-align:center; }
   </style>
 </head>
 
 <body>
 <header>
-  <h1>Wealth Tracker</h1>
-  <p>Mortgage + TFSA + RRSP + Savings + Net Worth</p>
+  <div class="inner">
+    <div class="topRight">
+      <button class="btn ghost" id="themeBtn" type="button" title="Toggle light/dark">Theme</button>
+      <button class="btn ghost" id="aboutBtn" type="button" title="About / Help">About</button>
+    </div>
+    <h1>Wealth Tracker</h1>
+    <p>Mortgage + TFSA + RRSP + Savings + Net Worth (demo)</p>
+  </div>
 </header>
 
 <div class="container">
 
-  <!-- FILTER CARD -->
-  <div class="card" style="margin-bottom:14px;">
-    <div class="sectionTitle">View Filter</div>
-    <div class="row">
-      <label>Show Results For (endpoint)</label>
-      <select id="timeframeYears">
-        <option value="1">1 Year</option>
-        <option value="3">3 Years</option>
-        <option value="5">5 Years</option>
-        <option value="10">10 Years</option>
-        <option value="15">15 Years</option>
-        <option value="20">20 Years</option>
-        <option value="25">25 Years</option>
-        <option value="30" selected>30 Years</option>
-      </select>
-    </div>
-    <div class="note">
-      This filter updates the summary, charts, and table to the selected year endpoint (e.g., Year 10 = Month 120).
+  <!-- Controls (Timeframe + presets) -->
+  <div class="card">
+    <div class="twoCols">
+      <div>
+        <div class="sectionTitle">View</div>
+        <div class="row">
+          <label>Start Year</label>
+          <select id="startYear"></select>
+        </div>
+        <div class="row">
+          <label>End Year</label>
+          <select id="endYear"></select>
+        </div>
+        <div class="note">Range mode: chart/table show only within the selected years. Summary uses the <b>end year</b> endpoint.</div>
+      </div>
+
+      <div>
+        <div class="sectionTitle">Quick Presets</div>
+        <div class="pillRow" style="margin-bottom:10px;">
+          <button class="pill" type="button" data-range="0,5">0–5y</button>
+          <button class="pill" type="button" data-range="0,10">0–10y</button>
+          <button class="pill" type="button" data-range="0,20">0–20y</button>
+          <button class="pill" type="button" data-range="0,30">0–30y</button>
+          <span class="chip" id="viewChip">View: 0–30y</span>
+        </div>
+
+        <div class="sectionTitle" style="margin-top:0;">Return Profiles</div>
+        <div class="pillRow">
+          <button class="pill" type="button" data-returns="conservative">Conservative</button>
+          <button class="pill" type="button" data-returns="balanced">Balanced</button>
+          <button class="pill" type="button" data-returns="aggressive">Aggressive</button>
+        </div>
+        <div class="note">Profiles set TFSA/RRSP annual return rates. You can still customize.</div>
+      </div>
     </div>
   </div>
 
-  <!-- TOP PIES (SPLIT) -->
-  <div class="chartGrid" style="margin-top:0;">
+  <!-- Sticky action bar -->
+  <div class="actionBar">
+    <div class="actionLeft">
+      <button class="btn primary" id="calcBtn" type="button">Calculate</button>
+      <button class="btn" id="resetBtn" type="button">Reset</button>
+      <button class="btn" id="exampleBtn" type="button">Example</button>
+    </div>
+    <div class="actionRight">
+      <button class="btn" id="saveBtn" type="button">Save</button>
+      <button class="btn" id="loadBtn" type="button">Load</button>
+      <button class="btn" id="clearBtn" type="button">Clear</button>
+      <button class="btn" id="csvBtn" type="button">Export CSV</button>
+      <button class="btn" id="pngBtn" type="button">Export Charts PNG</button>
+    </div>
+  </div>
+
+  <!-- Top pies (smaller + center text) -->
+  <div class="chartGrid">
     <div class="chartWrap">
       <div class="chartTitle">Debt (Mortgage Snapshot)</div>
-      <canvas id="debtPie" height="130"></canvas>
+      <canvas id="debtPie" height="120"></canvas>
     </div>
     <div class="chartWrap">
       <div class="chartTitle">My Money (TFSA + RRSP + Cash)</div>
-      <canvas id="moneyPie" height="130"></canvas>
+      <canvas id="moneyPie" height="120"></canvas>
     </div>
   </div>
 
-  <div class="spacer"></div>
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
 
-  <!-- INPUTS -->
-  <div class="grid">
-    <div class="card">
-      <div class="sectionTitle">Mortgage</div>
-
-      <div class="row"><label>Mortgage Amount ($)</label>
-        <input id="mortgageAmount" type="number" value="416000" min="0"/></div>
-
-      <div class="row"><label>Mortgage Interest Rate (% annual)</label>
-        <input id="mortgageRate" type="number" value="3.65" min="0" step="0.01"/></div>
-
-      <div class="row"><label>Amortization (years)</label>
-        <input id="amortYears" type="number" value="30" min="1" max="40"/></div>
-
-      <div class="row"><label>Payment Mode</label>
-        <select id="paymentMode">
-          <option value="monthly" selected>Monthly</option>
-          <option value="accel_biweekly">Accelerated Bi‑weekly (approx.)</option>
-        </select>
-      </div>
-
-      <div class="row"><label>Monthly Lump Sum ($)</label>
-        <input id="monthlyLump" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>Yearly Lump Sum ($) (every 12 months)</label>
-        <input id="yearlyLump" type="number" value="0" min="0"/></div>
-
-      <div class="note">
-        Accelerated bi‑weekly is modeled as an increased effective monthly payment (26 payments/year).
-        This is a planning estimate (can refine to bank-exact later).
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="sectionTitle">Investments + Savings</div>
-
-      <div class="subhead" style="margin-top:0;">Savings (Cash)</div>
-
-      <div class="row"><label>Current Savings (Cash) — Starting ($)</label>
-        <input id="cashStart" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>Monthly Savings Contribution ($)</label>
-        <input id="cashMonthly" type="number" value="0" min="0"/></div>
-
-      <div class="note">
-        Savings grows by monthly contribution. Return rate is assumed 0% (easy to add later).
-      </div>
-
-      <hr class="divider"/>
-
-      <div class="subhead">TFSA</div>
-      <div class="row"><label>TFSA Starting Balance ($)</label>
-        <input id="tfsaStart" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>TFSA Regular Monthly Contribution ($)</label>
-        <input id="tfsaMonthly" type="number" value="700" min="0"/></div>
-
-      <div class="row"><label>TFSA Extra Lump Sum ($)</label>
-        <input id="tfsaLumpAmount" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>TFSA Lump Sum Frequency</label>
-        <select id="tfsaLumpFreq">
-          <option value="monthly">Monthly</option>
-          <option value="quarterly" selected>Quarterly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </div>
-
-      <div class="row"><label>TFSA Return Rate (% annual)</label>
-        <input id="tfsaRate" type="number" value="11" min="0" step="0.01"/></div>
-
-      <hr class="divider"/>
-
-      <div class="subhead">RRSP</div>
-      <div class="row"><label>RRSP Starting Balance ($)</label>
-        <input id="rrspStart" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>RRSP Regular Monthly Contribution ($)</label>
-        <input id="rrspMonthly" type="number" value="300" min="0"/></div>
-
-      <div class="row"><label>RRSP Extra Lump Sum ($)</label>
-        <input id="rrspLumpAmount" type="number" value="0" min="0"/></div>
-
-      <div class="row"><label>RRSP Lump Sum Frequency</label>
-        <select id="rrspLumpFreq">
-          <option value="monthly">Monthly</option>
-          <option value="quarterly" selected>Quarterly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </div>
-
-      <div class="row"><label>RRSP Return Rate (% annual)</label>
-        <input id="rrspRate" type="number" value="8" min="0" step="0.01"/></div>
-
-      <hr class="divider"/>
-
-      <div class="subhead">Home (equity only)</div>
-      <div class="row"><label>Home Value Today ($)</label>
-        <input id="homeValue" type="number" value="554990" min="0"/></div>
-
-      <div class="note">
-        Home appreciation is removed (home value remains constant unless you manually change it).
-      </div>
-    </div>
+  <!-- Insights narrative -->
+  <div class="card" style="margin-top:14px;">
+    <div class="sectionTitle">Insights</div>
+    <div id="insights" class="muted">Run <b>Calculate</b> to generate insights.</div>
   </div>
 
-  <!-- ACTIONS -->
-  <div class="actions">
-    <button id="calcBtn" class="primary" type="button">Calculate Projection</button>
-    <button id="saveBtn" type="button">Save Scenario</button>
-    <button id="loadBtn" type="button">Load Scenario</button>
-    <button id="clearBtn" type="button">Clear Saved</button>
-    <button id="csvBtn" type="button">Export CSV (Current View)</button>
-  </div>
+  <!-- Inputs (collapsible) -->
+  <details open style="margin-top:14px;">
+    <summary>Inputs (click to expand/collapse)</summary>
+    <div class="grid" style="margin-top:12px;">
 
-  <!-- TOGGLES -->
+      <div class="card">
+        <div class="sectionTitle">Mortgage</div>
+
+        <div class="row"><label>Mortgage Amount ($) <span class="muted" title="Total loan principal.">ⓘ</span></label>
+          <input id="mortgageAmount" type="number" value="416000" min="0"/></div>
+
+        <div class="row"><label>Interest Rate (% annual) <span class="muted" title="Nominal annual rate.">ⓘ</span></label>
+          <input id="mortgageRate" type="number" value="3.65" min="0" step="0.01"/></div>
+
+        <div class="row"><label>Amortization (years)</label>
+          <input id="amortYears" type="number" value="30" min="1" max="40"/></div>
+
+        <div class="row"><label>Payment Mode</label>
+          <select id="paymentMode">
+            <option value="monthly" selected>Monthly</option>
+            <option value="accel_biweekly">Accelerated Bi‑weekly (approx.)</option>
+          </select>
+        </div>
+
+        <div class="row"><label>Monthly Lump Sum ($)</label>
+          <input id="monthlyLump" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>Yearly Lump Sum ($) (every 12 months)</label>
+          <input id="yearlyLump" type="number" value="0" min="0"/></div>
+
+        <div class="note">
+          Accelerated bi‑weekly is modeled as a higher effective monthly payment (26 payments/year). Planning estimate.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Investments + Savings</div>
+
+        <div class="subhead" style="margin-top:0;">Savings (Cash)</div>
+        <div class="row"><label>Starting Cash ($)</label>
+          <input id="cashStart" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>Monthly Savings Contribution ($)</label>
+          <input id="cashMonthly" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>Cash Lump Sum ($)</label>
+          <input id="cashLumpAmount" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>Cash Lump Frequency</label>
+          <select id="cashLumpFreq">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly" selected>Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+
+        <div class="note">Cash assumes 0% return by default (savings account). We can add cash interest later.</div>
+
+        <hr class="divider"/>
+
+        <div class="subhead">TFSA</div>
+        <div class="row"><label>TFSA Starting Balance ($)</label>
+          <input id="tfsaStart" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>TFSA Regular Monthly ($)</label>
+          <input id="tfsaMonthly" type="number" value="700" min="0"/></div>
+
+        <div class="row"><label>TFSA Lump Sum ($)</label>
+          <input id="tfsaLumpAmount" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>TFSA Lump Frequency</label>
+          <select id="tfsaLumpFreq">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly" selected>Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+
+        <div class="row"><label>TFSA Return Rate (% annual)</label>
+          <input id="tfsaRate" type="number" value="11" min="0" step="0.01"/></div>
+
+        <hr class="divider"/>
+
+        <div class="subhead">RRSP</div>
+        <div class="row"><label>RRSP Starting Balance ($)</label>
+          <input id="rrspStart" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>RRSP Regular Monthly ($)</label>
+          <input id="rrspMonthly" type="number" value="300" min="0"/></div>
+
+        <div class="row"><label>RRSP Lump Sum ($)</label>
+          <input id="rrspLumpAmount" type="number" value="0" min="0"/></div>
+
+        <div class="row"><label>RRSP Lump Frequency</label>
+          <select id="rrspLumpFreq">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly" selected>Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+
+        <div class="row"><label>RRSP Return Rate (% annual)</label>
+          <input id="rrspRate" type="number" value="8" min="0" step="0.01"/></div>
+
+        <hr class="divider"/>
+
+        <div class="subhead">Home</div>
+        <div class="row"><label>Home Value Today ($)</label>
+          <input id="homeValue" type="number" value="554990" min="0"/></div>
+
+        <div class="row"><label>Home Appreciation (optional)</label>
+          <select id="homeAppToggle">
+            <option value="off" selected>Off (constant)</option>
+            <option value="on">On</option>
+          </select>
+        </div>
+
+        <div class="row"><label>Home Appreciation Rate (% annual)</label>
+          <input id="homeAppRate" type="number" value="3" min="0" step="0.01" disabled/></div>
+
+        <div class="note">Home value is included as a <b>Home Value</b> column in the table & CSV.</div>
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Series toggles -->
   <div class="toggles">
-    <label><input type="checkbox" id="showMortgage" checked> Mortgage Balance</label>
+    <label><input type="checkbox" id="showMortgage" checked> Mortgage</label>
     <label><input type="checkbox" id="showTFSA" checked> TFSA</label>
     <label><input type="checkbox" id="showRRSP" checked> RRSP</label>
+    <label><input type="checkbox" id="showCash" checked> Cash</label>
+    <label><input type="checkbox" id="showHome" > Home Value</label>
     <label><input type="checkbox" id="showNetWorth" checked> Net Worth</label>
   </div>
 
-  <!-- SUMMARY -->
-  <div class="summary" id="summary"></div>
-
-  <!-- LINE CHART -->
-  <div class="chartWrap" style="margin-top:16px;">
+  <!-- Line chart -->
+  <div class="chartWrap" style="margin-top:12px;">
     <div class="chartTitle">Timeline (Line Chart)</div>
     <canvas id="wealthChart" height="120"></canvas>
+    <div class="note">Milestones shown at Year 5/10/15/20/25/30. Payoff marker appears if mortgage is paid off within the view.</div>
   </div>
 
-  <!-- TABLE -->
+  <!-- Table -->
   <details>
-    <summary>Show month‑by‑month table (first 360 rows max)</summary>
-    <div id="tableWrap"></div>
+    <summary>Month-by-month table (shows up to 360 rows)</summary>
+    <div class="tableWrap" id="tableWrap"></div>
   </details>
+
+  <div class="footerNote">Demo tool for planning/learning only — not financial advice. Data stays in your browser (localStorage) unless you export it.</div>
 
 </div>
 
+<!-- Welcome / About modal -->
+<div class="modalBack" id="modalBack">
+  <div class="modal">
+    <h3 id="modalTitle">Welcome</h3>
+    <div id="modalBody" class="muted"></div>
+    <div class="modalFooter">
+      <button class="btn" id="modalClose" type="button">Close</button>
+      <button class="btn primary" id="modalOk" type="button">Got it</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  let chart = null;
-  let debtPie = null;
-  let moneyPie = null;
-  let lastResult = null;
-  let viewMonths = null;
+  /* -------------------------
+     Utilities
+  ------------------------- */
+  const $ = (id) => document.getElementById(id);
 
   function fmtMoney(x){
     if (!isFinite(x)) return "—";
-    return x.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    return x.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0});
   }
   function fmtMoney2(x){
     if (!isFinite(x)) return "—";
-    return x.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return x.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
   }
-
-  function getInputs(){
-    return {
-      mortgageAmount: +document.getElementById("mortgageAmount").value || 0,
-      mortgageRate: (+document.getElementById("mortgageRate").value || 0)/100,
-      amortYears: +document.getElementById("amortYears").value || 30,
-      paymentMode: document.getElementById("paymentMode").value,
-      monthlyLump: +document.getElementById("monthlyLump").value || 0,
-      yearlyLump: +document.getElementById("yearlyLump").value || 0,
-
-      cashStart: +document.getElementById("cashStart").value || 0,
-      cashMonthly: +document.getElementById("cashMonthly").value || 0,
-
-      tfsaStart: +document.getElementById("tfsaStart").value || 0,
-      tfsaMonthly: +document.getElementById("tfsaMonthly").value || 0,
-      tfsaLumpAmount: +document.getElementById("tfsaLumpAmount").value || 0,
-      tfsaLumpFreq: document.getElementById("tfsaLumpFreq").value,
-      tfsaRate: (+document.getElementById("tfsaRate").value || 0)/100,
-
-      rrspStart: +document.getElementById("rrspStart").value || 0,
-      rrspMonthly: +document.getElementById("rrspMonthly").value || 0,
-      rrspLumpAmount: +document.getElementById("rrspLumpAmount").value || 0,
-      rrspLumpFreq: document.getElementById("rrspLumpFreq").value,
-      rrspRate: (+document.getElementById("rrspRate").value || 0)/100,
-
-      homeValue: +document.getElementById("homeValue").value || 0,
-    };
-  }
-
-  function standardMonthlyPayment(P, annualRate, years){
-    const n = years*12;
-    const i = annualRate/12;
-    if (i === 0) return P/n;
-    return P * i / (1 - Math.pow(1 + i, -n));
+  function fmtCompactCurrency(v){
+    const n = Number(v);
+    if (!isFinite(n)) return "—";
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000_000) return `$${(n/1_000_000_000).toFixed(1)}B`;
+    if (abs >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `$${(n/1_000).toFixed(0)}K`;
+    return `$${Math.round(n).toLocaleString()}`;
   }
 
   function isDue(freq, m){
@@ -437,49 +602,323 @@
     return false;
   }
 
-  function getViewMonths(){
-    const yrs = +document.getElementById("timeframeYears").value || 30;
-    return Math.max(1, yrs * 12);
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  /* -------------------------
+     Defaults / Example scenario
+  ------------------------- */
+  const DEFAULTS = {
+    mortgageAmount: 416000,
+    mortgageRate: 3.65,
+    amortYears: 30,
+    paymentMode: "monthly",
+    monthlyLump: 0,
+    yearlyLump: 0,
+
+    cashStart: 0,
+    cashMonthly: 0,
+    cashLumpAmount: 0,
+    cashLumpFreq: "quarterly",
+
+    tfsaStart: 0,
+    tfsaMonthly: 700,
+    tfsaLumpAmount: 0,
+    tfsaLumpFreq: "quarterly",
+    tfsaRate: 11,
+
+    rrspStart: 0,
+    rrspMonthly: 300,
+    rrspLumpAmount: 0,
+    rrspLumpFreq: "quarterly",
+    rrspRate: 8,
+
+    homeValue: 554990,
+    homeAppToggle: "off",
+    homeAppRate: 3,
+
+    startYear: 0,
+    endYear: 30,
+    theme: "light"
+  };
+
+  const EXAMPLE = {
+    mortgageAmount: 416000,
+    mortgageRate: 3.65,
+    amortYears: 30,
+    paymentMode: "accel_biweekly",
+    monthlyLump: 200,
+    yearlyLump: 1500,
+
+    cashStart: 5000,
+    cashMonthly: 150,
+    cashLumpAmount: 1000,
+    cashLumpFreq: "yearly",
+
+    tfsaStart: 12000,
+    tfsaMonthly: 750,
+    tfsaLumpAmount: 1500,
+    tfsaLumpFreq: "yearly",
+    tfsaRate: 10,
+
+    rrspStart: 8000,
+    rrspMonthly: 350,
+    rrspLumpAmount: 2000,
+    rrspLumpFreq: "yearly",
+    rrspRate: 8,
+
+    homeValue: 554990,
+    homeAppToggle: "on",
+    homeAppRate: 3,
+
+    startYear: 0,
+    endYear: 30,
+    theme: "light"
+  };
+
+  /* -------------------------
+     Chart globals
+  ------------------------- */
+  let wealthChart = null;
+  let debtPie = null;
+  let moneyPie = null;
+  let lastResult = null;
+  let view = { startMonth: 1, endMonth: 360 };
+
+  /* -------------------------
+     Chart plugins (center text + milestones)
+  ------------------------- */
+  const CenterTextPlugin = {
+    id: 'centerText',
+    afterDraw(chart, args, options){
+      if (!options || !options.text) return;
+      const {ctx, chartArea} = chart;
+      if (!chartArea) return;
+
+      // Find the first doughnut dataset meta center
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data || !meta.data.length) return;
+      const x = meta.data[0].x;
+      const y = meta.data[0].y;
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = options.color || (getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#111');
+
+      const title = options.title || '';
+      const text = options.text || '';
+
+      ctx.font = `700 ${options.titleSize || 12}px Segoe UI, Arial`;
+      ctx.fillText(title, x, y - 10);
+
+      ctx.font = `900 ${options.textSize || 16}px Segoe UI, Arial`;
+      ctx.fillText(text, x, y + 10);
+
+      ctx.restore();
+    }
+  };
+
+  const MilestonesPlugin = {
+    id: 'milestones',
+    afterDraw(chart, args, opts){
+      if (!opts || !opts.enabled) return;
+      const {ctx, chartArea, scales} = chart;
+      if (!chartArea || !scales || !scales.x) return;
+
+      const xScale = scales.x;
+      const {top, bottom, left, right} = chartArea;
+
+      const startMonth = opts.startMonth || 1;
+      const endMonth = opts.endMonth || (opts.labelsLength || 360);
+
+      // year markers at 5,10,15,20,25,30
+      const years = [5,10,15,20,25,30];
+      ctx.save();
+      ctx.strokeStyle = opts.color || 'rgba(100,116,139,.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4,4]);
+
+      for (const y of years){
+        const m = y*12;
+        if (m < startMonth || m > endMonth) continue;
+        const labelIndex = m - startMonth; // within view labels
+        const px = xScale.getPixelForValue(labelIndex);
+        if (px < left || px > right) continue;
+        ctx.beginPath();
+        ctx.moveTo(px, top);
+        ctx.lineTo(px, bottom);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // payoff marker if provided
+      if (opts.payoffMonth && opts.payoffMonth >= startMonth && opts.payoffMonth <= endMonth){
+        const pm = opts.payoffMonth;
+        const labelIndex = pm - startMonth;
+        const px = xScale.getPixelForValue(labelIndex);
+        ctx.strokeStyle = opts.payoffColor || 'rgba(34,197,94,.55)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(px, top);
+        ctx.lineTo(px, bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = opts.payoffColor || 'rgba(34,197,94,.75)';
+        ctx.font = '700 12px Segoe UI, Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Payoff', px + 6, top + 6);
+      }
+
+      ctx.restore();
+    }
+  };
+
+  Chart.register(CenterTextPlugin, MilestonesPlugin);
+
+  /* -------------------------
+     Inputs / persistence
+  ------------------------- */
+  function getInputs(){
+    return {
+      mortgageAmount: +$('mortgageAmount').value || 0,
+      mortgageRate: (+$('mortgageRate').value || 0),
+      amortYears: +$('amortYears').value || 30,
+      paymentMode: $('paymentMode').value,
+      monthlyLump: +$('monthlyLump').value || 0,
+      yearlyLump: +$('yearlyLump').value || 0,
+
+      cashStart: +$('cashStart').value || 0,
+      cashMonthly: +$('cashMonthly').value || 0,
+      cashLumpAmount: +$('cashLumpAmount').value || 0,
+      cashLumpFreq: $('cashLumpFreq').value,
+
+      tfsaStart: +$('tfsaStart').value || 0,
+      tfsaMonthly: +$('tfsaMonthly').value || 0,
+      tfsaLumpAmount: +$('tfsaLumpAmount').value || 0,
+      tfsaLumpFreq: $('tfsaLumpFreq').value,
+      tfsaRate: (+$('tfsaRate').value || 0),
+
+      rrspStart: +$('rrspStart').value || 0,
+      rrspMonthly: +$('rrspMonthly').value || 0,
+      rrspLumpAmount: +$('rrspLumpAmount').value || 0,
+      rrspLumpFreq: $('rrspLumpFreq').value,
+      rrspRate: (+$('rrspRate').value || 0),
+
+      homeValue: +$('homeValue').value || 0,
+      homeAppToggle: $('homeAppToggle').value,
+      homeAppRate: (+$('homeAppRate').value || 0),
+
+      startYear: +$('startYear').value || 0,
+      endYear: +$('endYear').value || 30,
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+    };
+  }
+
+  function setInputs(d){
+    $('mortgageAmount').value = d.mortgageAmount ?? DEFAULTS.mortgageAmount;
+    $('mortgageRate').value = d.mortgageRate ?? DEFAULTS.mortgageRate;
+    $('amortYears').value = d.amortYears ?? DEFAULTS.amortYears;
+    $('paymentMode').value = d.paymentMode ?? DEFAULTS.paymentMode;
+    $('monthlyLump').value = d.monthlyLump ?? DEFAULTS.monthlyLump;
+    $('yearlyLump').value = d.yearlyLump ?? DEFAULTS.yearlyLump;
+
+    $('cashStart').value = d.cashStart ?? DEFAULTS.cashStart;
+    $('cashMonthly').value = d.cashMonthly ?? DEFAULTS.cashMonthly;
+    $('cashLumpAmount').value = d.cashLumpAmount ?? DEFAULTS.cashLumpAmount;
+    $('cashLumpFreq').value = d.cashLumpFreq ?? DEFAULTS.cashLumpFreq;
+
+    $('tfsaStart').value = d.tfsaStart ?? DEFAULTS.tfsaStart;
+    $('tfsaMonthly').value = d.tfsaMonthly ?? DEFAULTS.tfsaMonthly;
+    $('tfsaLumpAmount').value = d.tfsaLumpAmount ?? DEFAULTS.tfsaLumpAmount;
+    $('tfsaLumpFreq').value = d.tfsaLumpFreq ?? DEFAULTS.tfsaLumpFreq;
+    $('tfsaRate').value = d.tfsaRate ?? DEFAULTS.tfsaRate;
+
+    $('rrspStart').value = d.rrspStart ?? DEFAULTS.rrspStart;
+    $('rrspMonthly').value = d.rrspMonthly ?? DEFAULTS.rrspMonthly;
+    $('rrspLumpAmount').value = d.rrspLumpAmount ?? DEFAULTS.rrspLumpAmount;
+    $('rrspLumpFreq').value = d.rrspLumpFreq ?? DEFAULTS.rrspLumpFreq;
+    $('rrspRate').value = d.rrspRate ?? DEFAULTS.rrspRate;
+
+    $('homeValue').value = d.homeValue ?? DEFAULTS.homeValue;
+    $('homeAppToggle').value = d.homeAppToggle ?? DEFAULTS.homeAppToggle;
+    $('homeAppRate').value = d.homeAppRate ?? DEFAULTS.homeAppRate;
+    $('homeAppRate').disabled = ($('homeAppToggle').value !== 'on');
+
+    $('startYear').value = d.startYear ?? DEFAULTS.startYear;
+    $('endYear').value = d.endYear ?? DEFAULTS.endYear;
+
+    setTheme(d.theme ?? DEFAULTS.theme);
+    updateViewChip();
+  }
+
+  function setTheme(mode){
+    document.documentElement.setAttribute('data-theme', mode === 'dark' ? 'dark' : 'light');
+  }
+
+  function saveScenario(){
+    localStorage.setItem('wealth_tracker_scenario', JSON.stringify(getInputs()));
+    toast('Scenario saved in this browser.');
+  }
+  function loadScenario(){
+    const raw = localStorage.getItem('wealth_tracker_scenario');
+    if (!raw) return toast('No saved scenario found.');
+    setInputs(JSON.parse(raw));
+    toast('Scenario loaded. Click Calculate.');
+  }
+  function clearScenario(){
+    localStorage.removeItem('wealth_tracker_scenario');
+    toast('Saved scenario cleared.');
+  }
+
+  /* -------------------------
+     Projection math
+  ------------------------- */
+  function standardMonthlyPayment(P, annualRatePct, years){
+    const annualRate = annualRatePct/100;
+    const n = years * 12;
+    const i = annualRate / 12;
+    if (i === 0) return P / n;
+    return P * i / (1 - Math.pow(1 + i, -n));
   }
 
   function runProjection(){
     const p = getInputs();
-    const monthsMax = p.amortYears * 12;
+    const monthsMax = Math.max(1, p.amortYears * 12);
 
     let mortgageBal = p.mortgageAmount;
     let tfsaBal = p.tfsaStart;
     let rrspBal = p.rrspStart;
     let cashBal = p.cashStart;
 
-    const homeValConst = p.homeValue; // constant
-    const cashMonthlyRate = 0; // 0% return for cash
+    let homeVal = p.homeValue;
+    const homeMonthlyRate = (p.homeAppToggle === 'on') ? (p.homeAppRate/100)/12 : 0;
 
-    const mortMonthlyRate = p.mortgageRate / 12;
-    const tfsaMonthlyRate = p.tfsaRate / 12;
-    const rrspMonthlyRate = p.rrspRate / 12;
+    const mortMonthlyRate = (p.mortgageRate/100) / 12;
+    const tfsaMonthlyRate = (p.tfsaRate/100) / 12;
+    const rrspMonthlyRate = (p.rrspRate/100) / 12;
 
     const baseMonthly = standardMonthlyPayment(p.mortgageAmount, p.mortgageRate, p.amortYears);
     let monthlyPay = baseMonthly;
-    if (p.paymentMode === "accel_biweekly"){
-      monthlyPay = baseMonthly * (13/12);
-    }
+    if (p.paymentMode === 'accel_biweekly') monthlyPay = baseMonthly * (13/12);
 
     const labels = [];
     const mortSeries = [];
     const tfsaSeries = [];
     const rrspSeries = [];
     const cashSeries = [];
-    const homeSeries = [];     // ✅ NEW
+    const homeSeries = [];
     const equitySeries = [];
     const netWorthSeries = [];
     const interestSeries = [];
     const principalPaidSeries = [];
 
     let totalInterest = 0;
-    let payoffMonth = null;
     let principalPaid = 0;
+    let payoffMonth = null;
 
     for (let m=1; m<=monthsMax; m++){
+      // Mortgage
       if (mortgageBal > 0){
         const interest = mortgageBal * mortMonthlyRate;
         totalInterest += interest;
@@ -499,18 +938,20 @@
         }
       }
 
-      // TFSA
+      // Investments
       tfsaBal = tfsaBal * (1 + tfsaMonthlyRate) + p.tfsaMonthly;
       if (p.tfsaLumpAmount > 0 && isDue(p.tfsaLumpFreq, m)) tfsaBal += p.tfsaLumpAmount;
 
-      // RRSP
       rrspBal = rrspBal * (1 + rrspMonthlyRate) + p.rrspMonthly;
       if (p.rrspLumpAmount > 0 && isDue(p.rrspLumpFreq, m)) rrspBal += p.rrspLumpAmount;
 
       // Cash
-      cashBal = cashBal * (1 + cashMonthlyRate) + p.cashMonthly;
+      cashBal = cashBal + p.cashMonthly;
+      if (p.cashLumpAmount > 0 && isDue(p.cashLumpFreq, m)) cashBal += p.cashLumpAmount;
 
-      const homeVal = homeValConst; // constant
+      // Home value
+      homeVal = homeVal * (1 + homeMonthlyRate);
+
       const equity = Math.max(0, homeVal - mortgageBal);
       const netWorth = equity + tfsaBal + rrspBal + cashBal;
 
@@ -519,7 +960,7 @@
       tfsaSeries.push(tfsaBal);
       rrspSeries.push(rrspBal);
       cashSeries.push(cashBal);
-      homeSeries.push(homeVal);          // ✅ NEW
+      homeSeries.push(homeVal);
       equitySeries.push(equity);
       netWorthSeries.push(netWorth);
       interestSeries.push(totalInterest);
@@ -527,194 +968,259 @@
     }
 
     lastResult = {
-      labels, mortSeries, tfsaSeries, rrspSeries, cashSeries, homeSeries, // ✅ NEW
-      netWorthSeries, equitySeries, interestSeries, principalPaidSeries,
-      totalInterest, payoffMonth, baseMonthly, monthlyPay, inputs: p
+      labels, mortSeries, tfsaSeries, rrspSeries, cashSeries, homeSeries,
+      equitySeries, netWorthSeries, interestSeries, principalPaidSeries,
+      totalInterest, payoffMonth, baseMonthly, monthlyPay,
+      inputs: p
     };
 
-    applyTimeframeAndRender();
+    applyViewAndRender();
   }
 
-  function applyTimeframeAndRender(){
+  /* -------------------------
+     View (range mode)
+  ------------------------- */
+  function getViewRange(){
+    const p = getInputs();
+    const startY = clamp(p.startYear, 0, 40);
+    const endY = clamp(p.endYear, 0, 40);
+    const start = Math.min(startY, endY);
+    const end = Math.max(startY, endY);
+
+    // months are 1-indexed internally
+    const startMonth = start * 12 + 1;
+    const endMonth = end * 12;
+    return {startY:start, endY:end, startMonth, endMonth};
+  }
+
+  function updateViewChip(){
+    const {startY, endY} = getViewRange();
+    $('viewChip').textContent = `View: ${startY}–${endY}y`;
+  }
+
+  function applyViewAndRender(){
     if (!lastResult) return;
-    viewMonths = Math.min(getViewMonths(), lastResult.labels.length);
 
-    renderSummary(lastResult, viewMonths);
-    renderLineChart(lastResult, viewMonths);
-    renderTopPies(lastResult, viewMonths);
-    renderTable(lastResult, viewMonths);
-    updateChartVisibility();
+    const {startY, endY, startMonth, endMonth} = getViewRange();
+    const maxMonth = lastResult.labels.length;
+
+    view.startMonth = clamp(startMonth, 1, maxMonth);
+    view.endMonth = clamp(endMonth, 1, maxMonth);
+    if (view.endMonth < view.startMonth) [view.startMonth, view.endMonth] = [view.endMonth, view.startMonth];
+
+    updateViewChip();
+
+    renderKPIs(lastResult, view.endMonth);
+    renderInsights(lastResult, view.endMonth);
+    renderPies(lastResult, view.endMonth);
+    renderLineChart(lastResult, view.startMonth, view.endMonth);
+    renderTable(lastResult, view.startMonth, view.endMonth);
   }
 
-  function renderSummary(r, months){
-    const idx = Math.max(0, months - 1);
+  /* -------------------------
+     Rendering
+  ------------------------- */
+  function renderKPIs(r, endMonth){
+    const idx = clamp(endMonth - 1, 0, r.labels.length - 1);
 
-    const finalTFSA = r.tfsaSeries[idx];
-    const finalRRSP = r.rrspSeries[idx];
-    const finalCash = r.cashSeries[idx];
-    const finalNW   = r.netWorthSeries[idx];
-    const finalEquity = r.equitySeries[idx];
-    const totalInterestToDate = r.interestSeries[idx];
-    const homeVal = r.homeSeries[idx]; // ✅ NEW
+    const debtRemaining = r.mortSeries[idx];
+    const myMoney = r.tfsaSeries[idx] + r.rrspSeries[idx] + r.cashSeries[idx];
+    const netWorth = r.netWorthSeries[idx];
+    const homeVal = r.homeSeries[idx];
+    const equity = r.equitySeries[idx];
+    const interest = r.interestSeries[idx];
 
-    const payoffText = (r.payoffMonth && r.payoffMonth <= months)
-      ? `Month ${r.payoffMonth} (~Year ${(r.payoffMonth/12).toFixed(1)})`
-      : `Not paid off within selected timeframe`;
+    const payoff = (r.payoffMonth && r.payoffMonth <= endMonth)
+      ? `Paid off in ~${(r.payoffMonth/12).toFixed(1)} years`
+      : `Not paid off by end of view`;
 
-    document.getElementById("summary").innerHTML = `
-      <div class="stat"><div class="label">Payment (monthly equivalent)</div><div class="value">$${fmtMoney2(r.monthlyPay)}</div></div>
-      <div class="stat"><div class="label">Mortgage payoff (within view)</div><div class="value">${payoffText}</div></div>
-      <div class="stat"><div class="label">Total interest (to selected year)</div><div class="value">$${fmtMoney(totalInterestToDate)}</div></div>
-      <div class="stat"><div class="label">Net worth (selected year)</div><div class="value">$${fmtMoney(finalNW)}</div></div>
+    $('kpis').innerHTML = `
+      <div class="kpi"><div class="label">Net Worth (end of view)</div><div class="value">${fmtCompactCurrency(netWorth)}</div><div class="sub">Equity + TFSA + RRSP + Cash</div></div>
+      <div class="kpi"><div class="label">Debt Remaining</div><div class="value">${fmtCompactCurrency(debtRemaining)}</div><div class="sub">${payoff}</div></div>
+      <div class="kpi"><div class="label">My Money</div><div class="value">${fmtCompactCurrency(myMoney)}</div><div class="sub">TFSA + RRSP + Cash</div></div>
+      <div class="kpi"><div class="label">Home Value / Equity</div><div class="value">${fmtCompactCurrency(homeVal)}</div><div class="sub">Equity: ${fmtCompactCurrency(equity)}</div></div>
+    `;
 
-      <div class="stat"><div class="label">Home value (selected year)</div><div class="value">$${fmtMoney(homeVal)}</div></div>
-      <div class="stat"><div class="label">Home equity (selected year)</div><div class="value">$${fmtMoney(finalEquity)}</div></div>
-      <div class="stat"><div class="label">TFSA (selected year)</div><div class="value">$${fmtMoney(finalTFSA)}</div></div>
-      <div class="stat"><div class="label">RRSP (selected year)</div><div class="value">$${fmtMoney(finalRRSP)}</div></div>
+    // add a hidden interest KPI row as insight? We keep in narrative.
+  }
+
+  function findCrossingMonth(seriesA, seriesB){
+    const n = Math.min(seriesA.length, seriesB.length);
+    for (let i=0; i<n; i++){
+      if (seriesA[i] >= seriesB[i]) return i+1; // month (1-indexed)
+    }
+    return null;
+  }
+
+  function renderInsights(r, endMonth){
+    const idx = clamp(endMonth - 1, 0, r.labels.length - 1);
+
+    const netWorthEnd = r.netWorthSeries[idx];
+    const interestEnd = r.interestSeries[idx];
+    const debtEnd = r.mortSeries[idx];
+    const myMoneyEnd = r.tfsaSeries[idx] + r.rrspSeries[idx] + r.cashSeries[idx];
+
+    const payoff = r.payoffMonth;
+    const payoffText = payoff ? `Mortgage payoff estimated around <b>Year ${(payoff/12).toFixed(1)}</b> (Month ${payoff}).` : `Mortgage not paid off within the amortization.`;
+
+    const cross = findCrossingMonth(
+      r.tfsaSeries.map((v,i)=>v + r.rrspSeries[i] + r.cashSeries[i]),
+      r.mortSeries
+    );
+    const crossText = cross ? `Your “My Money” (TFSA+RRSP+Cash) becomes greater than remaining mortgage around <b>Year ${(cross/12).toFixed(1)}</b>.` : `Your “My Money” does not exceed remaining mortgage within the modeled period.`;
+
+    const endY = (endMonth/12).toFixed(1);
+
+    $('insights').innerHTML = `
+      <div style="display:grid; gap:8px;">
+        <div>At <b>Year ${endY}</b>, your net worth is <b>$${fmtMoney(netWorthEnd)}</b>.</div>
+        <div>${payoffText}</div>
+        <div>Interest paid by the end of the view: <b>$${fmtMoney(interestEnd)}</b>.</div>
+        <div>${crossText}</div>
+        <div class="note">Tip: Try changing the view range (Start/End year) to explore specific periods, and use the return profiles for quick assumptions.</div>
+      </div>
     `;
   }
 
-  function renderLineChart(r, months){
-    const ctx = document.getElementById("wealthChart").getContext("2d");
-    if (chart) chart.destroy();
+  function renderPies(r, endMonth){
+    const idx = clamp(endMonth - 1, 0, r.labels.length - 1);
 
-    const labels = r.labels.slice(0, months);
-    const mort = r.mortSeries.slice(0, months);
-    const tfsa = r.tfsaSeries.slice(0, months);
-    const rrsp = r.rrspSeries.slice(0, months);
-    const nw   = r.netWorthSeries.slice(0, months);
-
-    chart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label:"Mortgage Balance", data:mort, borderColor:getComputedStyle(document.documentElement).getPropertyValue('--danger').trim(), tension:0.2, borderWidth:2 },
-          { label:"TFSA", data:tfsa, borderColor:getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), tension:0.2, borderWidth:2 },
-          { label:"RRSP", data:rrsp, borderColor:getComputedStyle(document.documentElement).getPropertyValue('--info').trim(), tension:0.2, borderWidth:2 },
-          { label:"Net Worth", data:nw, borderColor:"#111827", tension:0.2, borderWidth:2 }
-        ]
-      },
-      options: {
-        responsive:true,
-        interaction:{ mode:"index", intersect:false },
-        plugins:{
-          tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: $${fmtMoney(c.parsed.y)}` } }
-        },
-        scales:{
-          y:{ ticks:{ callback:(v)=> "$"+Number(v).toLocaleString() } }
-        }
-      }
-    });
-  }
-
-  function renderTopPies(r, months){
-    const idx = Math.max(0, months - 1);
+    const mortRemaining = r.mortSeries[idx];
+    const paidPrincipal = Math.max(0, r.inputs.mortgageAmount - mortRemaining);
 
     const tfsa = r.tfsaSeries[idx];
     const rrsp = r.rrspSeries[idx];
     const cash = r.cashSeries[idx];
 
-    const mortRemaining = r.mortSeries[idx];
-    const paidPrincipal = Math.max(0, r.inputs.mortgageAmount - mortRemaining);
-
-    // Debt Pie
-    const ctxDebt = document.getElementById("debtPie").getContext("2d");
+    // Debt pie
+    const ctxDebt = $('debtPie').getContext('2d');
     if (debtPie) debtPie.destroy();
-
     debtPie = new Chart(ctxDebt, {
-      type: "doughnut",
-      data: {
-        labels: ["Mortgage Remaining", "Principal Paid"],
-        datasets: [{
-          data: [mortRemaining, paidPrincipal],
-          backgroundColor: [
-            getComputedStyle(document.documentElement).getPropertyValue('--danger').trim(),
-            "#22c55e"
-          ],
-          borderWidth: 1
-        }]
+      type:'doughnut',
+      data:{
+        labels:['Mortgage Remaining','Principal Paid'],
+        datasets:[{ data:[mortRemaining, paidPrincipal], backgroundColor:[getCSS('--danger'), '#22c55e'], borderWidth:1 }]
       },
-      options: {
-        cutout: "62%",
-        plugins: {
-          legend: { position: "bottom" },
-          tooltip: {
-            callbacks: {
-              label: (c) => {
-                const total = c.dataset.data.reduce((a,b)=>a+b,0) || 1;
-                const val = c.parsed;
-                const pct = (val/total*100).toFixed(1);
-                return `${c.label}: $${fmtMoney(val)} (${pct}%)`;
-              }
-            }
-          }
+      options:{
+        responsive:true,
+        cutout:'64%',
+        plugins:{
+          legend:{ position:'bottom' },
+          tooltip:{ callbacks:{ label:(c)=> pieLabel(c) } },
+          centerText:{ title:'Debt', text: fmtCompactCurrency(mortRemaining), textSize:16, titleSize:12, color:getCSS('--text') }
         }
       }
     });
 
-    // My Money Pie
-    const ctxMoney = document.getElementById("moneyPie").getContext("2d");
+    // My money pie
+    const ctxMoney = $('moneyPie').getContext('2d');
     if (moneyPie) moneyPie.destroy();
-
+    const myMoney = tfsa + rrsp + cash;
     moneyPie = new Chart(ctxMoney, {
-      type: "doughnut",
-      data: {
-        labels: ["TFSA", "RRSP", "Savings (Cash)"],
-        datasets: [{
-          data: [tfsa, rrsp, cash],
-          backgroundColor: [
-            getComputedStyle(document.documentElement).getPropertyValue('--good').trim(),
-            getComputedStyle(document.documentElement).getPropertyValue('--info').trim(),
-            getComputedStyle(document.documentElement).getPropertyValue('--warn').trim()
-          ],
-          borderWidth: 1
-        }]
+      type:'doughnut',
+      data:{
+        labels:['TFSA','RRSP','Cash'],
+        datasets:[{ data:[tfsa, rrsp, cash], backgroundColor:[getCSS('--good'), getCSS('--info'), getCSS('--warn')], borderWidth:1 }]
       },
-      options: {
-        cutout: "62%",
-        plugins: {
-          legend: { position: "bottom" },
-          tooltip: {
-            callbacks: {
-              label: (c) => {
-                const total = c.dataset.data.reduce((a,b)=>a+b,0) || 1;
-                const val = c.parsed;
-                const pct = (val/total*100).toFixed(1);
-                return `${c.label}: $${fmtMoney(val)} (${pct}%)`;
-              }
-            }
+      options:{
+        responsive:true,
+        cutout:'64%',
+        plugins:{
+          legend:{ position:'bottom' },
+          tooltip:{ callbacks:{ label:(c)=> pieLabel(c) } },
+          centerText:{ title:'My Money', text: fmtCompactCurrency(myMoney), textSize:16, titleSize:12, color:getCSS('--text') }
+        }
+      }
+    });
+  }
+
+  function pieLabel(c){
+    const total = c.dataset.data.reduce((a,b)=>a+b,0) || 1;
+    const val = c.parsed;
+    const pct = (val/total*100).toFixed(1);
+    return `${c.label}: ${fmtCompactCurrency(val)} (${pct}%)`;
+  }
+
+  function getCSS(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function renderLineChart(r, startMonth, endMonth){
+    const startIdx = clamp(startMonth - 1, 0, r.labels.length - 1);
+    const endIdx = clamp(endMonth - 1, 0, r.labels.length - 1);
+
+    const labels = r.labels.slice(startIdx, endIdx+1).map((_,i)=>{
+      // make labels by month index to keep x simple
+      const m = startMonth + i;
+      const y = Math.ceil(m/12);
+      const mm = ((m-1)%12)+1;
+      return `Y${y} M${mm}`;
+    });
+
+    const mort = r.mortSeries.slice(startIdx, endIdx+1);
+    const tfsa = r.tfsaSeries.slice(startIdx, endIdx+1);
+    const rrsp = r.rrspSeries.slice(startIdx, endIdx+1);
+    const cash = r.cashSeries.slice(startIdx, endIdx+1);
+    const home = r.homeSeries.slice(startIdx, endIdx+1);
+    const nw = r.netWorthSeries.slice(startIdx, endIdx+1);
+
+    const datasets = [];
+    if ($('showMortgage').checked) datasets.push({ label:'Mortgage', data:mort, borderColor:getCSS('--danger'), tension:0.2, borderWidth:2 });
+    if ($('showTFSA').checked) datasets.push({ label:'TFSA', data:tfsa, borderColor:getCSS('--good'), tension:0.2, borderWidth:2 });
+    if ($('showRRSP').checked) datasets.push({ label:'RRSP', data:rrsp, borderColor:getCSS('--info'), tension:0.2, borderWidth:2 });
+    if ($('showCash').checked) datasets.push({ label:'Cash', data:cash, borderColor:getCSS('--warn'), tension:0.2, borderWidth:2 });
+    if ($('showHome').checked) datasets.push({ label:'Home Value', data:home, borderColor:'rgba(99,102,241,.95)', tension:0.2, borderWidth:2, borderDash:[6,4] });
+    if ($('showNetWorth').checked) datasets.push({ label:'Net Worth', data:nw, borderColor:getCSS('--neutral'), tension:0.2, borderWidth:2 });
+
+    const ctx = $('wealthChart').getContext('2d');
+    if (wealthChart) wealthChart.destroy();
+
+    wealthChart = new Chart(ctx, {
+      type:'line',
+      data:{ labels, datasets },
+      options:{
+        responsive:true,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{
+          tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: ${fmtCompactCurrency(c.parsed.y)}` } },
+          milestones:{
+            enabled:true,
+            startMonth,
+            endMonth,
+            labelsLength: labels.length,
+            payoffMonth: r.payoffMonth,
+            color: 'rgba(100,116,139,.35)',
+            payoffColor: 'rgba(34,197,94,.70)'
+          }
+        },
+        scales:{
+          y:{
+            ticks:{ callback:(v)=> fmtCompactCurrency(v) }
           }
         }
       }
     });
   }
 
-  function updateChartVisibility(){
-    if (!chart) return;
-    chart.data.datasets[0].hidden = !document.getElementById("showMortgage").checked;
-    chart.data.datasets[1].hidden = !document.getElementById("showTFSA").checked;
-    chart.data.datasets[2].hidden = !document.getElementById("showRRSP").checked;
-    chart.data.datasets[3].hidden = !document.getElementById("showNetWorth").checked;
-    chart.update();
-  }
+  function renderTable(r, startMonth, endMonth){
+    const startIdx = clamp(startMonth - 1, 0, r.labels.length - 1);
+    const endIdx = clamp(endMonth - 1, 0, r.labels.length - 1);
+    const rowsMax = 360;
 
-  function renderTable(r, months){
-    let html = `<table>
-      <tr>
-        <th>Month</th>
-        <th>Mortgage</th>
-        <th>TFSA</th>
-        <th>RRSP</th>
-        <th>Savings</th>
-        <th>Home Value</th>
-        <th>Equity</th>
-        <th>Net Worth</th>
-        <th>Total Interest</th>
-      </tr>`;
+    let html = `<table><thead><tr>
+      <th>Month</th>
+      <th>Mortgage</th>
+      <th>TFSA</th>
+      <th>RRSP</th>
+      <th>Cash</th>
+      <th>Home Value</th>
+      <th>Equity</th>
+      <th>Net Worth</th>
+      <th>Total Interest</th>
+    </tr></thead><tbody>`;
 
-    const cap = Math.min(360, months);
-    for (let i=0; i<cap; i++){
+    let count = 0;
+    for (let i=startIdx; i<=endIdx && count<rowsMax; i++, count++){
       html += `<tr>
         <td>${r.labels[i]}</td>
         <td>${fmtMoney2(r.mortSeries[i])}</td>
@@ -728,62 +1234,24 @@
       </tr>`;
     }
 
-    html += `</table>`;
-    document.getElementById("tableWrap").innerHTML = html;
+    html += `</tbody></table>`;
+    $('tableWrap').innerHTML = html;
   }
 
-  function saveScenario(){
-    localStorage.setItem("wealth_tracker_scenario", JSON.stringify(getInputs()));
-    alert("Scenario saved in this browser.");
-  }
-
-  function loadScenario(){
-    const raw = localStorage.getItem("wealth_tracker_scenario");
-    if (!raw) return alert("No saved scenario found.");
-    const d = JSON.parse(raw);
-
-    document.getElementById("mortgageAmount").value = d.mortgageAmount ?? 0;
-    document.getElementById("mortgageRate").value = (d.mortgageRate ?? 0) * 100;
-    document.getElementById("amortYears").value = d.amortYears ?? 30;
-    document.getElementById("paymentMode").value = d.paymentMode ?? "monthly";
-    document.getElementById("monthlyLump").value = d.monthlyLump ?? 0;
-    document.getElementById("yearlyLump").value = d.yearlyLump ?? 0;
-
-    document.getElementById("cashStart").value = d.cashStart ?? 0;
-    document.getElementById("cashMonthly").value = d.cashMonthly ?? 0;
-
-    document.getElementById("tfsaStart").value = d.tfsaStart ?? 0;
-    document.getElementById("tfsaMonthly").value = d.tfsaMonthly ?? 0;
-    document.getElementById("tfsaLumpAmount").value = d.tfsaLumpAmount ?? 0;
-    document.getElementById("tfsaLumpFreq").value = d.tfsaLumpFreq ?? "quarterly";
-    document.getElementById("tfsaRate").value = (d.tfsaRate ?? 0) * 100;
-
-    document.getElementById("rrspStart").value = d.rrspStart ?? 0;
-    document.getElementById("rrspMonthly").value = d.rrspMonthly ?? 0;
-    document.getElementById("rrspLumpAmount").value = d.rrspLumpAmount ?? 0;
-    document.getElementById("rrspLumpFreq").value = d.rrspLumpFreq ?? "quarterly";
-    document.getElementById("rrspRate").value = (d.rrspRate ?? 0) * 100;
-
-    document.getElementById("homeValue").value = d.homeValue ?? 0;
-
-    alert("Scenario loaded. Click Calculate.");
-  }
-
-  function clearScenario(){
-    localStorage.removeItem("wealth_tracker_scenario");
-    alert("Saved scenario cleared.");
-  }
-
+  /* -------------------------
+     Export
+  ------------------------- */
   function exportCSV(){
-    if (!lastResult) return alert("Run Calculate first.");
+    if (!lastResult) return toast('Run Calculate first.');
 
     const r = lastResult;
-    const months = Math.min(viewMonths || r.labels.length, r.labels.length);
+    const startIdx = clamp(view.startMonth - 1, 0, r.labels.length - 1);
+    const endIdx = clamp(view.endMonth - 1, 0, r.labels.length - 1);
 
-    const header = ["Month","Mortgage","TFSA","RRSP","Savings","HomeValue","Equity","NetWorth","TotalInterest"];
-    const lines = [header.join(",")];
+    const header = ['Month','Mortgage','TFSA','RRSP','Cash','HomeValue','Equity','NetWorth','TotalInterest'];
+    const lines = [header.join(',')];
 
-    for (let i=0; i<months; i++){
+    for (let i=startIdx; i<=endIdx; i++){
       lines.push([
         r.labels[i],
         r.mortSeries[i].toFixed(2),
@@ -794,37 +1262,242 @@
         r.equitySeries[i].toFixed(2),
         r.netWorthSeries[i].toFixed(2),
         r.interestSeries[i].toFixed(2)
-      ].join(","));
+      ].join(','));
     }
 
-    const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+    const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `wealth_tracker_${months}months.csv`;
+    a.download = `wealth_tracker_${view.startMonth}-${view.endMonth}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("calcBtn").addEventListener("click", runProjection);
-    document.getElementById("saveBtn").addEventListener("click", saveScenario);
-    document.getElementById("loadBtn").addEventListener("click", loadScenario);
-    document.getElementById("clearBtn").addEventListener("click", clearScenario);
-    document.getElementById("csvBtn").addEventListener("click", exportCSV);
+  function exportChartsPNG(){
+    if (!wealthChart || !debtPie || !moneyPie) return toast('Run Calculate first.');
 
-    document.getElementById("showMortgage").addEventListener("change", updateChartVisibility);
-    document.getElementById("showTFSA").addEventListener("change", updateChartVisibility);
-    document.getElementById("showRRSP").addEventListener("change", updateChartVisibility);
-    document.getElementById("showNetWorth").addEventListener("change", updateChartVisibility);
+    // Create a combined image
+    const lineCanvas = $('wealthChart');
+    const debtCanvas = $('debtPie');
+    const moneyCanvas = $('moneyPie');
 
-    document.getElementById("timeframeYears").addEventListener("change", () => {
-      applyTimeframeAndRender();
+    const pad = 16;
+    const w = Math.max(lineCanvas.width, debtCanvas.width + moneyCanvas.width + pad);
+    const h = debtCanvas.height + pad + lineCanvas.height + pad;
+
+    const out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    const ctx = out.getContext('2d');
+
+    // background
+    ctx.fillStyle = getCSS('--bg');
+    ctx.fillRect(0,0,w,h);
+
+    // draw pies side by side
+    ctx.drawImage(debtCanvas, 0, 0);
+    ctx.drawImage(moneyCanvas, debtCanvas.width + pad, 0);
+
+    // draw line chart
+    ctx.drawImage(lineCanvas, 0, debtCanvas.height + pad);
+
+    const url = out.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wealth_tracker_charts.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  /* -------------------------
+     Mini toast
+  ------------------------- */
+  let toastTimer = null;
+  function toast(msg){
+    let el = document.getElementById('toast');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'toast';
+      el.style.position = 'fixed';
+      el.style.left = '50%';
+      el.style.bottom = '18px';
+      el.style.transform = 'translateX(-50%)';
+      el.style.padding = '10px 14px';
+      el.style.borderRadius = '999px';
+      el.style.border = '1px solid ' + getCSS('--border');
+      el.style.background = 'rgba(255,255,255,.85)';
+      el.style.color = getCSS('--text');
+      el.style.boxShadow = '0 10px 28px rgba(0,0,0,.18)';
+      el.style.backdropFilter = 'blur(10px)';
+      el.style.zIndex = 100;
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (document.documentElement.getAttribute('data-theme') === 'dark'){
+      el.style.background = 'rgba(15,23,42,.85)';
+    } else {
+      el.style.background = 'rgba(255,255,255,.85)';
+    }
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.style.display = 'none'; }, 2200);
+  }
+
+  /* -------------------------
+     Modal (welcome + about)
+  ------------------------- */
+  function openModal(title, bodyHTML){
+    $('modalTitle').textContent = title;
+    $('modalBody').innerHTML = bodyHTML;
+    $('modalBack').style.display = 'flex';
+  }
+  function closeModal(){
+    $('modalBack').style.display = 'none';
+  }
+
+  function showWelcomeIfNeeded(){
+    const seen = localStorage.getItem('wealth_tracker_welcome_seen');
+    if (seen) return;
+    openModal('Welcome 👋', `
+      <div>This is a lightweight demo that runs fully in your browser.</div>
+      <ul>
+        <li><b>No data is uploaded</b>. Saved scenarios use your browser localStorage.</li>
+        <li>Use <b>Start/End Year</b> to filter the timeline window.</li>
+        <li>Charts include milestone markers (Y5, Y10, etc.) and payoff marker when applicable.</li>
+      </ul>
+      <div class="note">Disclaimer: planning/learning only, not financial advice.</div>
+    `);
+  }
+
+  /* -------------------------
+     Init
+  ------------------------- */
+  function populateYearDropdowns(){
+    const maxYears = 40;
+    const s = $('startYear');
+    const e = $('endYear');
+    s.innerHTML = '';
+    e.innerHTML = '';
+    for (let y=0; y<=maxYears; y++){
+      const o1 = document.createElement('option');
+      o1.value = y; o1.textContent = `${y}`;
+      const o2 = document.createElement('option');
+      o2.value = y; o2.textContent = `${y}`;
+      s.appendChild(o1);
+      e.appendChild(o2);
+    }
+  }
+
+  function applyReturnProfile(profile){
+    if (profile === 'conservative'){
+      $('tfsaRate').value = 7;
+      $('rrspRate').value = 6;
+    } else if (profile === 'balanced'){
+      $('tfsaRate').value = 9;
+      $('rrspRate').value = 7;
+    } else if (profile === 'aggressive'){
+      $('tfsaRate').value = 11;
+      $('rrspRate').value = 8;
+    }
+    toast(`Return profile applied: ${profile}`);
+  }
+
+  function resetDefaults(){
+    setInputs(DEFAULTS);
+    toast('Reset to defaults.');
+  }
+
+  function setRange(startY, endY){
+    $('startYear').value = startY;
+    $('endYear').value = endY;
+    updateViewChip();
+    if (lastResult) applyViewAndRender();
+  }
+
+  function toggleTheme(){
+    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    // re-render charts to match colors
+    if (lastResult) applyViewAndRender();
+    toast(`Theme: ${next}`);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    populateYearDropdowns();
+
+    // load last scenario if exists
+    const saved = localStorage.getItem('wealth_tracker_scenario');
+    if (saved){
+      try{ setInputs(JSON.parse(saved)); } catch{ setInputs(DEFAULTS); }
+    } else {
+      setInputs(DEFAULTS);
+    }
+
+    // events
+    $('calcBtn').addEventListener('click', runProjection);
+    $('saveBtn').addEventListener('click', saveScenario);
+    $('loadBtn').addEventListener('click', loadScenario);
+    $('clearBtn').addEventListener('click', clearScenario);
+    $('csvBtn').addEventListener('click', exportCSV);
+    $('pngBtn').addEventListener('click', exportChartsPNG);
+    $('resetBtn').addEventListener('click', resetDefaults);
+    $('exampleBtn').addEventListener('click', () => { setInputs(EXAMPLE); toast('Example loaded. Click Calculate.'); });
+
+    $('startYear').addEventListener('change', () => { updateViewChip(); if (lastResult) applyViewAndRender(); });
+    $('endYear').addEventListener('change', () => { updateViewChip(); if (lastResult) applyViewAndRender(); });
+
+    $('homeAppToggle').addEventListener('change', () => {
+      $('homeAppRate').disabled = ($('homeAppToggle').value !== 'on');
     });
+
+    // series toggles
+    ['showMortgage','showTFSA','showRRSP','showCash','showHome','showNetWorth'].forEach(id => {
+      $(id).addEventListener('change', () => { if (lastResult) renderLineChart(lastResult, view.startMonth, view.endMonth); });
+    });
+
+    // pills
+    document.querySelectorAll('[data-range]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [a,b] = btn.getAttribute('data-range').split(',').map(Number);
+        setRange(a,b);
+      });
+    });
+    document.querySelectorAll('[data-returns]').forEach(btn => {
+      btn.addEventListener('click', () => applyReturnProfile(btn.getAttribute('data-returns')));
+    });
+
+    // theme/about
+    $('themeBtn').addEventListener('click', toggleTheme);
+    $('aboutBtn').addEventListener('click', () => {
+      openModal('About', `
+        <div><b>Wealth Tracker</b> is a static demo you can host on GitHub Pages.</div>
+        <ul>
+          <li>Range view: Start/End year filters the visible chart window.</li>
+          <li>Two doughnut charts show Debt and My Money snapshots (with center totals).</li>
+          <li>Line chart shows milestones and payoff marker (if applicable).</li>
+          <li>Export CSV and PNG for quick sharing.</li>
+        </ul>
+        <div class="note">Tip: Save scenarios to compare different strategies.</div>
+      `);
+    });
+
+    // modal
+    $('modalClose').addEventListener('click', closeModal);
+    $('modalOk').addEventListener('click', () => { localStorage.setItem('wealth_tracker_welcome_seen','1'); closeModal(); });
+    $('modalBack').addEventListener('click', (e) => { if (e.target.id === 'modalBack') closeModal(); });
+
+    // show welcome
+    showWelcomeIfNeeded();
+
+    // first render attempt (optional)
+    // runProjection();
   });
 </script>
-
 </body>
 </html>
